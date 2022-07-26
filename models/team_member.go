@@ -7,5 +7,5 @@ type TeamMember struct {
 
 	Workspace *Workspace `json:"workspace_id"`
 	User      *User      `json:"user_email"`
-	TeamRole  *TeamRole  `json:"-"`
+	TeamRole  *TeamRole  `json:"team_role_id"`
 }

@@ -50,7 +50,7 @@ func (db *dbClient) GetWorkspace(workspaceID string) (*models.Workspace, error) 
 	}
 
 	var workspace *models.Workspace
-	if workspaces == nil {
+	if workspaces == nil || len(workspaces) <= 0 {
 		return nil, fmt.Errorf("GetWorkspace: %v", errors.New("Workspace with given ID not found!"))
 	} else {
 		workspace = workspaces[0]

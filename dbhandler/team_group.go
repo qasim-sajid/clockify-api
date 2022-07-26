@@ -50,7 +50,7 @@ func (db *dbClient) GetTeamGroup(teamGroupID string) (*models.TeamGroup, error) 
 	}
 
 	var teamGroup *models.TeamGroup
-	if teamGroups == nil {
+	if teamGroups == nil || len(teamGroups) <= 0 {
 		return nil, fmt.Errorf("GetTeamGroup: %v", errors.New("Team Group with given ID not found!"))
 	} else {
 		teamGroup = teamGroups[0]
@@ -85,8 +85,21 @@ func (db *dbClient) GetTeamGroupsFromRows(rows *sql.Rows) ([]*models.TeamGroup, 
 	for rows.Next() {
 		tg := models.TeamGroup{}
 
-		err := rows.Scan(&tg.ID, &tg.Name)
+		var workspaceID sql.NullString
 
+		err := rows.Scan(&tg.ID, &tg.Name, &workspaceID)
+		if err != nil {
+			return nil, fmt.Errorf("GetTeamGroupsFromRows: %v", err)
+		}
+
+		if workspaceID.Valid {
+			tg.Workspace, err = db.GetWorkspace(workspaceID.String)
+			if err != nil {
+				return nil, fmt.Errorf("GetTeamGroupsFromRows: %v", err)
+			}
+		}
+
+		tg.TeamMembers, err = db.GetTeamGroupTeamMembers(tg.ID)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamGroupsFromRows: %v", err)
 		}
@@ -95,6 +108,40 @@ func (db *dbClient) GetTeamGroupsFromRows(rows *sql.Rows) ([]*models.TeamGroup, 
 	}
 
 	return teamGroups, nil
+}
+
+func (db *dbClient) GetTeamGroupTeamMembers(teamGroupID string) ([]*models.TeamMember, error) {
+	searchParams := make(map[string]interface{})
+	searchParams["team_group_id"] = teamGroupID
+
+	selectQuery, err := db.GetSelectQueryForCompositeTable(TEAM_GROUP_TEAM_MEMBER, searchParams)
+	if err != nil {
+		return nil, fmt.Errorf("GetTeamGroupTeamMembers: %v", err)
+	}
+
+	rows, err := db.RunSelectQuery(selectQuery)
+	if err != nil {
+		return nil, fmt.Errorf("GetTeamGroupTeamMembers: %v", err)
+	}
+
+	teamMembers := make([]*models.TeamMember, 0)
+	for rows.Next() {
+		teamMemberID := ""
+
+		err := rows.Scan(&teamGroupID, &teamMemberID)
+		if err != nil {
+			return nil, fmt.Errorf("GetTeamGroupTeamMembers: %v", err)
+		}
+
+		tm, err := db.GetTeamMember(teamMemberID)
+		if err != nil {
+			return nil, fmt.Errorf("GetTeamGroupTeamMembers: %v", err)
+		}
+
+		teamMembers = append(teamMembers, tm)
+	}
+
+	return teamMembers, nil
 }
 
 func (db *dbClient) UpdateTeamGroup(teamGroupID string, updates map[string]interface{}) (*models.TeamGroup, error) {

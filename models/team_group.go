@@ -6,5 +6,5 @@ type TeamGroup struct {
 	Name string `json:"name"`
 
 	Workspace   *Workspace    `json:"workspace_id"`
-	TeamMembers *[]TeamMember `json:"-"`
+	TeamMembers []*TeamMember `json:"-"`
 }

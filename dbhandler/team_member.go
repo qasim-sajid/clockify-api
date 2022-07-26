@@ -50,7 +50,7 @@ func (db *dbClient) GetTeamMember(teamMemberID string) (*models.TeamMember, erro
 	}
 
 	var teamMember *models.TeamMember
-	if teamMembers == nil {
+	if teamMembers == nil || len(teamMembers) <= 0 {
 		return nil, fmt.Errorf("GetTeamMember: %v", errors.New("TeamMember with given ID not found!"))
 	} else {
 		teamMember = teamMembers[0]
@@ -85,10 +85,34 @@ func (db *dbClient) GetTeamMembersFromRows(rows *sql.Rows) ([]*models.TeamMember
 	for rows.Next() {
 		tm := models.TeamMember{}
 
-		err := rows.Scan(&tm.ID, &tm.BillableRate)
+		var workspaceID sql.NullString
+		var userEmail sql.NullString
+		var teamRoleID sql.NullString
 
+		err := rows.Scan(&tm.ID, &tm.BillableRate, &workspaceID, &userEmail, &teamRoleID)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamMembersFromRows: %v", err)
+		}
+
+		if workspaceID.Valid {
+			tm.Workspace, err = db.GetWorkspace(workspaceID.String)
+			if err != nil {
+				return nil, fmt.Errorf("GetTeamMembersFromRows: %v", err)
+			}
+		}
+
+		if userEmail.Valid {
+			tm.User, err = db.GetUser(userEmail.String)
+			if err != nil {
+				return nil, fmt.Errorf("GetTeamMembersFromRows: %v", err)
+			}
+		}
+
+		if teamRoleID.Valid {
+			tm.TeamRole, err = db.GetTeamRole(teamRoleID.String)
+			if err != nil {
+				return nil, fmt.Errorf("GetTeamMembersFromRows: %v", err)
+			}
 		}
 
 		teamMembers = append(teamMembers, &tm)

@@ -50,7 +50,7 @@ func (db *dbClient) GetClient(clientID string) (*models.Client, error) {
 	}
 
 	var client *models.Client
-	if clients == nil {
+	if clients == nil || len(clients) <= 0 {
 		return nil, fmt.Errorf("GetClient: %v", errors.New("Client with given ID not found!"))
 	} else {
 		client = clients[0]

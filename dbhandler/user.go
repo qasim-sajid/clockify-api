@@ -54,7 +54,7 @@ func (db *dbClient) GetUser(email string) (*models.User, error) {
 	}
 
 	var user *models.User
-	if users == nil {
+	if users == nil || len(users) <= 0 {
 		return nil, fmt.Errorf("GetUser: %v", errors.New("User with given ID not found!"))
 	} else {
 		user = users[0]

@@ -50,7 +50,7 @@ func (db *dbClient) GetProject(projectID string) (*models.Project, error) {
 	}
 
 	var project *models.Project
-	if projects == nil {
+	if projects == nil || len(projects) <= 0 {
 		return nil, fmt.Errorf("GetProject: %v", errors.New("Project with given ID not found!"))
 	} else {
 		project = projects[0]
@@ -85,8 +85,8 @@ func (db *dbClient) GetProjectsFromRows(rows *sql.Rows) ([]*models.Project, erro
 	for rows.Next() {
 		p := models.Project{}
 
-		clientID := ""
-		workspaceID := ""
+		var clientID sql.NullString
+		var workspaceID sql.NullString
 
 		err := rows.Scan(&p.ID, &p.Name, &p.ColorTag, &p.IsPublic, &p.TrackedHours, &p.TrackedAmount, &p.ProgressPercentage, &clientID,
 			&workspaceID)
@@ -94,12 +94,26 @@ func (db *dbClient) GetProjectsFromRows(rows *sql.Rows) ([]*models.Project, erro
 			return nil, fmt.Errorf("GetProjectsFromRows: %v", err)
 		}
 
-		p.Client, err = db.GetProjectClient(clientID)
+		if clientID.Valid {
+			p.Client, err = db.GetClient(clientID.String)
+			if err != nil {
+				return nil, fmt.Errorf("GetProjectsFromRows: %v", err)
+			}
+		}
+
+		if workspaceID.Valid {
+			p.Workspace, err = db.GetWorkspace(workspaceID.String)
+			if err != nil {
+				return nil, fmt.Errorf("GetProjectsFromRows: %v", err)
+			}
+		}
+
+		p.TeamMembers, err = db.GetProjectTeamMembers(p.ID)
 		if err != nil {
 			return nil, fmt.Errorf("GetProjectsFromRows: %v", err)
 		}
 
-		p.Workspace, err = db.GetProjectWorkspace(workspaceID)
+		p.TeamGroups, err = db.GetProjectTeamGroups(p.ID)
 		if err != nil {
 			return nil, fmt.Errorf("GetProjectsFromRows: %v", err)
 		}
@@ -110,33 +124,72 @@ func (db *dbClient) GetProjectsFromRows(rows *sql.Rows) ([]*models.Project, erro
 	return projects, nil
 }
 
-func (db *dbClient) GetProjectClient(clientID string) (*models.Client, error) {
-	client, err := db.GetClient(clientID)
-	if err != nil {
-		return nil, fmt.Errorf("GetProjectClient: %v", err)
-	}
-
-	return client, nil
-}
-
-func (db *dbClient) GetProjectWorkspace(workspaceID string) (*models.Workspace, error) {
-	workspace, err := db.GetWorkspace(workspaceID)
-	if err != nil {
-		return nil, fmt.Errorf("GetProjectWorkspace: %v", err)
-	}
-
-	return workspace, nil
-}
-
-func (db *dbClient) GetProjectTeamMembers(project *models.Project) ([]*models.TeamMember, error) {
+func (db *dbClient) GetProjectTeamMembers(projectID string) ([]*models.TeamMember, error) {
 	searchParams := make(map[string]interface{})
-	searchParams["project_id"] = project.ID
-	teamMembers, err := db.GetTeamMembersWithFilters(searchParams)
+	searchParams["project_id"] = projectID
+
+	selectQuery, err := db.GetSelectQueryForCompositeTable(PROJECT_TEAM_MEMBER, searchParams)
 	if err != nil {
 		return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
 	}
 
+	rows, err := db.RunSelectQuery(selectQuery)
+	if err != nil {
+		return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
+	}
+
+	teamMembers := make([]*models.TeamMember, 0)
+	for rows.Next() {
+		teamMemberID := ""
+
+		err := rows.Scan(&projectID, &teamMemberID)
+		if err != nil {
+			return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
+		}
+
+		tm, err := db.GetTeamMember(teamMemberID)
+		if err != nil {
+			return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
+		}
+
+		teamMembers = append(teamMembers, tm)
+	}
+
 	return teamMembers, nil
+}
+
+func (db *dbClient) GetProjectTeamGroups(projectID string) ([]*models.TeamGroup, error) {
+	searchParams := make(map[string]interface{})
+	searchParams["project_id"] = projectID
+
+	selectQuery, err := db.GetSelectQueryForCompositeTable(PROJECT_TEAM_GROUP, searchParams)
+	if err != nil {
+		return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
+	}
+
+	rows, err := db.RunSelectQuery(selectQuery)
+	if err != nil {
+		return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
+	}
+
+	teamGroups := make([]*models.TeamGroup, 0)
+	for rows.Next() {
+		teamGroupID := ""
+
+		err := rows.Scan(&projectID, &teamGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
+		}
+
+		tg, err := db.GetTeamGroup(teamGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
+		}
+
+		teamGroups = append(teamGroups, tg)
+	}
+
+	return teamGroups, nil
 }
 
 func (db *dbClient) UpdateProject(projectID string, updates map[string]interface{}) (*models.Project, error) {

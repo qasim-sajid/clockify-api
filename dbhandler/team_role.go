@@ -50,7 +50,7 @@ func (db *dbClient) GetTeamRole(teamRoleID string) (*models.TeamRole, error) {
 	}
 
 	var teamRole *models.TeamRole
-	if teamRoles == nil {
+	if teamRoles == nil || len(teamRoles) <= 0 {
 		return nil, fmt.Errorf("GetTeamRole: %v", errors.New("TeamRole with given ID not found!"))
 	} else {
 		teamRole = teamRoles[0]

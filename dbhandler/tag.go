@@ -50,7 +50,7 @@ func (db *dbClient) GetTag(tagID string) (*models.Tag, error) {
 	}
 
 	var tag *models.Tag
-	if tags == nil {
+	if tags == nil || len(tags) <= 0 {
 		return nil, fmt.Errorf("GetTag: %v", errors.New("Tag with given ID not found!"))
 	} else {
 		tag = tags[0]

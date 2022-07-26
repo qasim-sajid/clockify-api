@@ -51,7 +51,7 @@ func (db *dbClient) GetTask(taskID string) (*models.Task, error) {
 	}
 
 	var task *models.Task
-	if tasks == nil {
+	if tasks == nil || len(tasks) <= 0 {
 		return nil, fmt.Errorf("GetTask: %v", errors.New("Task with given ID not found!"))
 	} else {
 		task = tasks[0]
@@ -114,10 +114,56 @@ func (db *dbClient) GetTasksFromRows(rows *sql.Rows) ([]*models.Task, error) {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}
 
+		if projectID.Valid {
+			t.Project, err = db.GetProject(projectID.String)
+			if err != nil {
+				return nil, fmt.Errorf("GetTasksFromRows: %v", err)
+			}
+		}
+
+		t.Tags, err = db.GetTaskTags(t.ID)
+		if err != nil {
+			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
+		}
+
 		tasks = append(tasks, &t)
 	}
 
 	return tasks, nil
+}
+
+func (db *dbClient) GetTaskTags(taskID string) ([]*models.Tag, error) {
+	searchParams := make(map[string]interface{})
+	searchParams["task_id"] = taskID
+
+	selectQuery, err := db.GetSelectQueryForCompositeTable(TASK_TAG, searchParams)
+	if err != nil {
+		return nil, fmt.Errorf("GetTaskTags: %v", err)
+	}
+
+	rows, err := db.RunSelectQuery(selectQuery)
+	if err != nil {
+		return nil, fmt.Errorf("GetTaskTags: %v", err)
+	}
+
+	tags := make([]*models.Tag, 0)
+	for rows.Next() {
+		tagID := ""
+
+		err := rows.Scan(&taskID, &tagID)
+		if err != nil {
+			return nil, fmt.Errorf("GetTaskTags: %v", err)
+		}
+
+		t, err := db.GetTag(tagID)
+		if err != nil {
+			return nil, fmt.Errorf("GetTaskTags: %v", err)
+		}
+
+		tags = append(tags, t)
+	}
+
+	return tags, nil
 }
 
 func (db *dbClient) UpdateTask(taskID string, updates map[string]interface{}) (*models.Task, error) {
