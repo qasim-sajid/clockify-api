@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
@@ -15,7 +16,13 @@ func (db *dbClient) AddUser(user *models.User) (*models.User, int, error) {
 		return nil, status, fmt.Errorf("AddUser: %v", err)
 	}
 
-	insertQuery, err := db.GetInsertQueryForStruct(user)
+	id := uuid.New().String()
+	if id == "" {
+		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+	}
+	user.ID = fmt.Sprintf("u_%v", id)
+
+	insertQuery, err := db.GetInsertQuery(*user)
 	if err != nil {
 		return nil, -1, fmt.Errorf("AddUser: %v", err)
 	}
@@ -55,7 +62,7 @@ func (db *dbClient) GetUser(email string) (*models.User, error) {
 
 	var user *models.User
 	if users == nil || len(users) <= 0 {
-		return nil, fmt.Errorf("GetUser: %v", errors.New("User with given ID not found!"))
+		return nil, nil //fmt.Errorf("GetUser: %v", errors.New("User with given ID not found!"))
 	} else {
 		user = users[0]
 	}
@@ -146,8 +153,11 @@ func (db *dbClient) DeleteUser(userID string) error {
 }
 
 func (db *dbClient) CheckForDuplicateUser(email string) (int, error) {
-	_, err := db.GetUser(email)
+	user, err := db.GetUser(email)
 	if err != nil {
+		return http.StatusBadRequest, fmt.Errorf("CheckForDuplicateUser: %v", err)
+	}
+	if user != nil {
 		return http.StatusBadRequest, fmt.Errorf("CheckForDuplicateUser: %v", errors.New("User with this email already exists!"))
 	}
 

@@ -7,11 +7,18 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
 func (db *dbClient) AddTeamRole(teamRole *models.TeamRole) (*models.TeamRole, int, error) {
-	insertQuery, err := db.GetInsertQueryForStruct(teamRole)
+	id := uuid.New().String()
+	if id == "" {
+		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+	}
+	teamRole.ID = fmt.Sprintf("tr_%v", id)
+
+	insertQuery, err := db.GetInsertQuery(*teamRole)
 	if err != nil {
 		return nil, -1, fmt.Errorf("AddTeamRole: %v", err)
 	}

@@ -7,11 +7,18 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
 func (db *dbClient) AddTeamMember(teamMember *models.TeamMember) (*models.TeamMember, int, error) {
-	insertQuery, err := db.GetInsertQueryForStruct(teamMember)
+	id := uuid.New().String()
+	if id == "" {
+		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+	}
+	teamMember.ID = fmt.Sprintf("tm_%v", id)
+
+	insertQuery, err := db.GetInsertQuery(*teamMember)
 	if err != nil {
 		return nil, -1, fmt.Errorf("AddTeamMember: %v", err)
 	}
@@ -31,6 +38,50 @@ func (db *dbClient) GetAllTeamMembers() ([]*models.TeamMember, error) {
 	}
 
 	return teamMembers, nil
+}
+
+func (db *dbClient) AddTeamMemberTeamGroups(teamMemberID string, teamGroups []*models.TeamGroup) error {
+	if teamGroups == nil {
+		return nil
+	}
+
+	for _, tg := range teamGroups {
+		valuesMap := make(map[string]interface{})
+		valuesMap["team_group_id"] = tg.ID
+		valuesMap["team_member_id"] = teamMemberID
+
+		//Check if value already exists
+		_, err := db.GetTeamGroupForTeamMember(teamMemberID, tg.ID)
+		if err != nil {
+			//If value doesn't exist then insert it
+			insertQuery, err := db.GetInsertQueryForCompositeTable(TEAM_GROUP_TEAM_MEMBER, valuesMap)
+			if err != nil {
+				return fmt.Errorf("AddTeamGroupTeamMembers: %v", err)
+			}
+
+			_, err = db.RunInsertQuery(insertQuery)
+			if err != nil {
+				return fmt.Errorf("AddTeamGroupTeamMembers: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (db *dbClient) GetTeamGroupForTeamMember(teamMemberID, teamGroupID string) (*models.TeamGroup, error) {
+	teamGroups, err := db.GetTeamMemberTeamGroups(teamMemberID)
+	if err != nil {
+		return nil, fmt.Errorf("GetTeamGroupForTeamMember: %v", err)
+	}
+
+	for _, tg := range teamGroups {
+		if tg.ID == teamGroupID {
+			return tg, nil
+		}
+	}
+
+	return nil, fmt.Errorf("GetTeamGroupForTeamMember: %v", errors.New("TeamGroup with given ID not found!"))
 }
 
 func (db *dbClient) GetTeamMember(teamMemberID string) (*models.TeamMember, error) {
@@ -121,6 +172,35 @@ func (db *dbClient) GetTeamMembersFromRows(rows *sql.Rows) ([]*models.TeamMember
 	return teamMembers, nil
 }
 
+func (db *dbClient) GetTeamMemberTeamGroups(teamMemberID string) ([]*models.TeamGroup, error) {
+	searchParams := make(map[string]interface{})
+	searchParams["team_member_id"] = teamMemberID
+
+	rows, err := db.GetValuesFromCompositeTable(TEAM_GROUP_TEAM_MEMBER, searchParams)
+	if err != nil {
+		return nil, fmt.Errorf("GetTeamMemberTeamGroups: %v", err)
+	}
+
+	teamGroups := make([]*models.TeamGroup, 0)
+	for rows.Next() {
+		teamGroupID := ""
+
+		err := rows.Scan(&teamGroupID, &teamMemberID)
+		if err != nil {
+			return nil, fmt.Errorf("GetTeamMemberTeamGroups: %v", err)
+		}
+
+		tg, err := db.GetTeamGroup(teamGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("GetTeamMemberTeamGroups: %v", err)
+		}
+
+		teamGroups = append(teamGroups, tg)
+	}
+
+	return teamGroups, nil
+}
+
 func (db *dbClient) UpdateTeamMember(teamMemberID string, updates map[string]interface{}) (*models.TeamMember, error) {
 	updateQuery, err := db.GetUpdateQueryForStruct(models.TeamMember{}, teamMemberID, updates)
 	if err != nil {
@@ -160,6 +240,19 @@ func (db *dbClient) DeleteTeamMember(teamMemberID string) error {
 	_, err = db.RunDeleteQuery(deleteQuery)
 	if err != nil {
 		return fmt.Errorf("DeleteTeamMember: %v", err)
+	}
+
+	deleteParamsForColumns := make(map[string]interface{})
+	deleteParamsForColumns["team_member_id"] = teamMemberID
+
+	_, err = db.DeleteValuesFromCompositeTable(PROJECT_TEAM_MEMBER, deleteParamsForColumns)
+	if err != nil {
+		return fmt.Errorf("DeleteProjectsForTeamMember: %v", err)
+	}
+
+	_, err = db.DeleteValuesFromCompositeTable(TEAM_GROUP_TEAM_MEMBER, deleteParamsForColumns)
+	if err != nil {
+		return fmt.Errorf("DeleteTeamGroupsForTeamMember: %v", err)
 	}
 
 	return nil

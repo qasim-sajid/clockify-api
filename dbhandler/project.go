@@ -7,11 +7,18 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
 func (db *dbClient) AddProject(project *models.Project) (*models.Project, int, error) {
-	insertQuery, err := db.GetInsertQueryForStruct(project)
+	id := uuid.New().String()
+	if id == "" {
+		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+	}
+	project.ID = fmt.Sprintf("p_%v", id)
+
+	insertQuery, err := db.GetInsertQuery(*project)
 	if err != nil {
 		return nil, -1, fmt.Errorf("AddProject: %v", err)
 	}
@@ -21,7 +28,95 @@ func (db *dbClient) AddProject(project *models.Project) (*models.Project, int, e
 		return nil, -1, fmt.Errorf("AddProject: %v", err)
 	}
 
+	err = db.AddProjectTeamMembers(project.ID, project.TeamMembers)
+	if err != nil {
+		return nil, -1, fmt.Errorf("AddProject: %v", err)
+	}
+
+	err = db.AddProjectTeamGroups(project.ID, project.TeamGroups)
+	if err != nil {
+		return nil, -1, fmt.Errorf("AddProject: %v", err)
+	}
+
 	return project, http.StatusOK, nil
+}
+
+func (db *dbClient) AddProjectTeamMembers(projectID string, teamMembers []*models.TeamMember) error {
+	if teamMembers == nil {
+		return nil
+	}
+
+	for _, tm := range teamMembers {
+		valuesMap := make(map[string]interface{})
+		valuesMap["project_id"] = projectID
+		valuesMap["team_member_id"] = tm.ID
+
+		//Check if value already exists
+		_, err := db.GetTeamMemberForProject(projectID, tm.ID)
+		if err != nil {
+			//If value doesn't exist then insert it
+			_, err := db.AddValueInCompositeTable(PROJECT_TEAM_MEMBER, valuesMap)
+			if err != nil {
+				return fmt.Errorf("AddProjectTeamMembers: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (db *dbClient) GetTeamMemberForProject(projectID, teamMemberID string) (*models.TeamMember, error) {
+	teamMembers, err := db.GetProjectTeamMembers(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("GetTeamMemberForProject: %v", err)
+	}
+
+	for _, tm := range teamMembers {
+		if tm.ID == teamMemberID {
+			return tm, nil
+		}
+	}
+
+	return nil, fmt.Errorf("GetTeamMemberForProject: %v", errors.New("TeamMember with given ID not found!"))
+}
+
+func (db *dbClient) AddProjectTeamGroups(projectID string, teamGroups []*models.TeamGroup) error {
+	if teamGroups == nil {
+		return nil
+	}
+
+	for _, tg := range teamGroups {
+		valuesMap := make(map[string]interface{})
+		valuesMap["project_id"] = projectID
+		valuesMap["team_group_id"] = tg.ID
+
+		//Check if value already exists
+		_, err := db.GetTeamGroupForProject(projectID, tg.ID)
+		if err != nil {
+			//If value doesn't exist then insert it
+			_, err := db.AddValueInCompositeTable(PROJECT_TEAM_GROUP, valuesMap)
+			if err != nil {
+				return fmt.Errorf("AddProjectTeamGroups: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (db *dbClient) GetTeamGroupForProject(projectID, teamGroupID string) (*models.TeamGroup, error) {
+	teamGroups, err := db.GetProjectTeamGroups(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("GetTeamGroupForProject: %v", err)
+	}
+
+	for _, tg := range teamGroups {
+		if tg.ID == teamGroupID {
+			return tg, nil
+		}
+	}
+
+	return nil, fmt.Errorf("GetTeamGroupForProject: %v", errors.New("TeamGroup with given ID not found!"))
 }
 
 func (db *dbClient) GetAllProjects() ([]*models.Project, error) {
@@ -128,12 +223,7 @@ func (db *dbClient) GetProjectTeamMembers(projectID string) ([]*models.TeamMembe
 	searchParams := make(map[string]interface{})
 	searchParams["project_id"] = projectID
 
-	selectQuery, err := db.GetSelectQueryForCompositeTable(PROJECT_TEAM_MEMBER, searchParams)
-	if err != nil {
-		return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
-	}
-
-	rows, err := db.RunSelectQuery(selectQuery)
+	rows, err := db.GetValuesFromCompositeTable(PROJECT_TEAM_MEMBER, searchParams)
 	if err != nil {
 		return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
 	}
@@ -162,12 +252,7 @@ func (db *dbClient) GetProjectTeamGroups(projectID string) ([]*models.TeamGroup,
 	searchParams := make(map[string]interface{})
 	searchParams["project_id"] = projectID
 
-	selectQuery, err := db.GetSelectQueryForCompositeTable(PROJECT_TEAM_GROUP, searchParams)
-	if err != nil {
-		return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
-	}
-
-	rows, err := db.RunSelectQuery(selectQuery)
+	rows, err := db.GetValuesFromCompositeTable(PROJECT_TEAM_GROUP, searchParams)
 	if err != nil {
 		return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
 	}
@@ -208,7 +293,53 @@ func (db *dbClient) UpdateProject(projectID string, updates map[string]interface
 		return nil, fmt.Errorf("UpdateProject: %v", err)
 	}
 
+	if v, ok := updates["project_team_members"]; ok {
+		teamMembers := v.([]*models.TeamMember)
+		err = db.UpdateProjectTeamMembers(projectID, teamMembers)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateProject: %v", err)
+		}
+	}
+
+	if v, ok := updates["project_team_groups"]; ok {
+		teamGroups := v.([]*models.TeamGroup)
+		err = db.UpdateProjectTeamGroups(projectID, teamGroups)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateProject: %v", err)
+		}
+	}
+
 	return project, nil
+}
+
+func (db *dbClient) UpdateProjectTeamMembers(projectID string, teamMembers []*models.TeamMember) error {
+	deleteParams := make(map[string]interface{})
+	_, err := db.DeleteValuesFromCompositeTable(PROJECT_TEAM_MEMBER, deleteParams)
+	if err != nil {
+		return fmt.Errorf("UpdateProjectTeamMembers: %v", err)
+	}
+
+	err = db.AddProjectTeamMembers(projectID, teamMembers)
+	if err != nil {
+		return fmt.Errorf("UpdateProjectTeamMembers: %v", err)
+	}
+
+	return nil
+}
+
+func (db *dbClient) UpdateProjectTeamGroups(projectID string, teamGroups []*models.TeamGroup) error {
+	deleteParams := make(map[string]interface{})
+	_, err := db.DeleteValuesFromCompositeTable(PROJECT_TEAM_GROUP, deleteParams)
+	if err != nil {
+		return fmt.Errorf("UpdateProjectTeamGroups: %v", err)
+	}
+
+	err = db.AddProjectTeamGroups(projectID, teamGroups)
+	if err != nil {
+		return fmt.Errorf("UpdateProjectTeamGroups: %v", err)
+	}
+
+	return nil
 }
 
 func (db *dbClient) DeleteProject(projectID string) error {
@@ -233,5 +364,60 @@ func (db *dbClient) DeleteProject(projectID string) error {
 		return fmt.Errorf("DeleteProject: %v", err)
 	}
 
+	deleteParamsForColumns := make(map[string]interface{})
+	deleteParamsForColumns["project_id"] = projectID
+
+	_, err = db.DeleteValuesFromCompositeTable(PROJECT_TEAM_GROUP, deleteParamsForColumns)
+	if err != nil {
+		return fmt.Errorf("DeleteTeamGroupsForProject: %v", err)
+	}
+
+	_, err = db.DeleteValuesFromCompositeTable(PROJECT_TEAM_MEMBER, deleteParamsForColumns)
+	if err != nil {
+		return fmt.Errorf("DeleteTeamMembersForProject: %v", err)
+	}
+
 	return nil
+}
+
+func (db *dbClient) AddValueInCompositeTable(tableName string, valuesMap map[string]interface{}) (sql.Result, error) {
+	insertQuery, err := db.GetInsertQueryForCompositeTable(tableName, valuesMap)
+	if err != nil {
+		return nil, fmt.Errorf("AddValuesInCompositeTable: %v", err)
+	}
+
+	result, err := db.RunInsertQuery(insertQuery)
+	if err != nil {
+		return nil, fmt.Errorf("AddValuesInCompositeTable: %v", err)
+	}
+
+	return result, nil
+}
+
+func (db *dbClient) GetValuesFromCompositeTable(tableName string, searchParams map[string]interface{}) (*sql.Rows, error) {
+	selectQuery, err := db.GetSelectQueryForCompositeTable(tableName, searchParams)
+	if err != nil {
+		return nil, fmt.Errorf("GetValuesFromCompositeTable: %v", err)
+	}
+
+	rows, err := db.RunSelectQuery(selectQuery)
+	if err != nil {
+		return nil, fmt.Errorf("GetValuesFromCompositeTable: %v", err)
+	}
+
+	return rows, nil
+}
+
+func (db *dbClient) DeleteValuesFromCompositeTable(tableName string, deleteParams map[string]interface{}) (sql.Result, error) {
+	deleteQuery, err := db.GetDeleteQueryForCompositeTable(tableName, deleteParams)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteValuesInCompositeTable: %v", err)
+	}
+
+	result, err := db.RunDeleteQuery(deleteQuery)
+	if err != nil {
+		return nil, fmt.Errorf("DeleteValuesInCompositeTable: %v", err)
+	}
+
+	return result, nil
 }

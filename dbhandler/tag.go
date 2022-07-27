@@ -7,11 +7,18 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
 func (db *dbClient) AddTag(tag *models.Tag) (*models.Tag, int, error) {
-	insertQuery, err := db.GetInsertQueryForStruct(tag)
+	id := uuid.New().String()
+	if id == "" {
+		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+	}
+	tag.ID = fmt.Sprintf("t_%v", id)
+
+	insertQuery, err := db.GetInsertQuery(*tag)
 	if err != nil {
 		return nil, -1, fmt.Errorf("AddTag: %v", err)
 	}
@@ -136,6 +143,14 @@ func (db *dbClient) DeleteTag(tagID string) error {
 	_, err = db.RunDeleteQuery(deleteQuery)
 	if err != nil {
 		return fmt.Errorf("DeleteTag: %v", err)
+	}
+
+	deleteParamsForColumns := make(map[string]interface{})
+	deleteParamsForColumns["tag_id"] = tagID
+
+	_, err = db.DeleteValuesFromCompositeTable(TASK_TAG, deleteParamsForColumns)
+	if err != nil {
+		return fmt.Errorf("DeleteTasksForTag: %v", err)
 	}
 
 	return nil
