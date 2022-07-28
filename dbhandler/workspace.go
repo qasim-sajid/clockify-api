@@ -110,9 +110,11 @@ func (db *dbClient) UpdateWorkspace(workspaceID string, updates map[string]inter
 		return nil, fmt.Errorf("UpdateWorkspace: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateWorkspace: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateWorkspace: %v", err)
+		}
 	}
 
 	workspace, err := db.GetWorkspace(workspaceID)

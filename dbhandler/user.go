@@ -114,9 +114,11 @@ func (db *dbClient) UpdateUser(userID string, updates map[string]interface{}) (*
 		return nil, fmt.Errorf("UpdateUser: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateUser: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateUser: %v", err)
+		}
 	}
 
 	user, err := db.GetUser(userID)

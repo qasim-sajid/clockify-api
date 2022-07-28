@@ -278,35 +278,39 @@ func (db *dbClient) GetProjectTeamGroups(projectID string) ([]*models.TeamGroup,
 }
 
 func (db *dbClient) UpdateProject(projectID string, updates map[string]interface{}) (*models.Project, error) {
+	if v, ok := updates["project_team_members"]; ok {
+		teamMembers := v.([]*models.TeamMember)
+		err := db.UpdateProjectTeamMembers(projectID, teamMembers)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateProject: %v", err)
+		}
+		delete(updates, "project_team_members")
+	}
+
+	if v, ok := updates["project_team_groups"]; ok {
+		teamGroups := v.([]*models.TeamGroup)
+		err := db.UpdateProjectTeamGroups(projectID, teamGroups)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateProject: %v", err)
+		}
+		delete(updates, "project_team_groups")
+	}
+
 	updateQuery, err := db.GetUpdateQueryForStruct(models.Project{}, projectID, updates)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateProject: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateProject: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateProject: %v", err)
+		}
 	}
 
 	project, err := db.GetProject(projectID)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateProject: %v", err)
-	}
-
-	if v, ok := updates["project_team_members"]; ok {
-		teamMembers := v.([]*models.TeamMember)
-		err = db.UpdateProjectTeamMembers(projectID, teamMembers)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateProject: %v", err)
-		}
-	}
-
-	if v, ok := updates["project_team_groups"]; ok {
-		teamGroups := v.([]*models.TeamGroup)
-		err = db.UpdateProjectTeamGroups(projectID, teamGroups)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateProject: %v", err)
-		}
 	}
 
 	return project, nil

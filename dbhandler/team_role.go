@@ -110,9 +110,11 @@ func (db *dbClient) UpdateTeamRole(teamRoleID string, updates map[string]interfa
 		return nil, fmt.Errorf("UpdateTeamRole: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateTeamRole: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateTeamRole: %v", err)
+		}
 	}
 
 	teamRole, err := db.GetTeamRole(teamRoleID)

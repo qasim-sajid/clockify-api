@@ -196,14 +196,25 @@ func (db *dbClient) GetTeamGroupTeamMembers(teamGroupID string) ([]*models.TeamM
 }
 
 func (db *dbClient) UpdateTeamGroup(teamGroupID string, updates map[string]interface{}) (*models.TeamGroup, error) {
+	if v, ok := updates["team_group_team_members"]; ok {
+		teamMembers := v.([]*models.TeamMember)
+		err := db.UpdateTeamGroupTeamMembers(teamGroupID, teamMembers)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateProject: %v", err)
+		}
+		delete(updates, "team_group_team_members")
+	}
+
 	updateQuery, err := db.GetUpdateQueryForStruct(models.TeamGroup{}, teamGroupID, updates)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateTeamGroup: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateTeamGroup: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateTeamGroup: %v", err)
+		}
 	}
 
 	teamGroup, err := db.GetTeamGroup(teamGroupID)
@@ -211,19 +222,12 @@ func (db *dbClient) UpdateTeamGroup(teamGroupID string, updates map[string]inter
 		return nil, fmt.Errorf("UpdateTeamGroup: %v", err)
 	}
 
-	if v, ok := updates["team_group_team_members"]; ok {
-		teamMembers := v.([]*models.TeamMember)
-		err = db.UpdateTeamGroupTeamMembers(teamGroupID, teamMembers)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateProject: %v", err)
-		}
-	}
-
 	return teamGroup, nil
 }
 
 func (db *dbClient) UpdateTeamGroupTeamMembers(teamGroupID string, teamMembers []*models.TeamMember) error {
 	deleteParams := make(map[string]interface{})
+	deleteParams["team_group_id"] = teamGroupID
 	_, err := db.DeleteValuesFromCompositeTable(TEAM_GROUP_TEAM_MEMBER, deleteParams)
 	if err != nil {
 		return fmt.Errorf("UpdateTeamGroupTeamMembers: %v", err)

@@ -223,27 +223,30 @@ func (db *dbClient) GetTaskTags(taskID string) ([]*models.Tag, error) {
 }
 
 func (db *dbClient) UpdateTask(taskID string, updates map[string]interface{}) (*models.Task, error) {
+	if v, ok := updates["task_tags"]; ok {
+		tags := v.([]*models.Tag)
+		err := db.UpdateTaskTags(taskID, tags)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateTask: %v", err)
+		}
+		delete(updates, "task_tags")
+	}
+
 	updateQuery, err := db.GetUpdateQueryForStruct(models.Task{}, taskID, updates)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateTask: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateTask: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateTask: %v", err)
+		}
 	}
 
 	task, err := db.GetTask(taskID)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateTask: %v", err)
-	}
-
-	if v, ok := updates["task_tags"]; ok {
-		tags := v.([]*models.Tag)
-		err = db.UpdateTaskTags(taskID, tags)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateTask: %v", err)
-		}
 	}
 
 	return task, nil

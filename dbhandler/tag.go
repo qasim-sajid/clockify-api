@@ -110,9 +110,11 @@ func (db *dbClient) UpdateTag(tagID string, updates map[string]interface{}) (*mo
 		return nil, fmt.Errorf("UpdateTag: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateTag: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateTag: %v", err)
+		}
 	}
 
 	tag, err := db.GetTag(tagID)

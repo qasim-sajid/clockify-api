@@ -110,9 +110,11 @@ func (db *dbClient) UpdateClient(clientID string, updates map[string]interface{}
 		return nil, fmt.Errorf("UpdateClient: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateClient: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateClient: %v", err)
+		}
 	}
 
 	client, err := db.GetClient(clientID)
