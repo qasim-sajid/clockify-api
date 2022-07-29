@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
@@ -44,16 +43,30 @@ func (db *dbClient) GetAllUsers() ([]*models.User, error) {
 	return users, nil
 }
 
-func (db *dbClient) GetUser(email string) (*models.User, error) {
+func (db *dbClient) GetUser(userID string) (*models.User, error) {
 	selectParams := make(map[string]interface{})
-	u := models.User{}
-	v := reflect.ValueOf(u)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(1))
+	selectParams["_id"] = userID
+
+	users, err := db.GetUsersWithFilters(selectParams)
 	if err != nil {
 		return nil, fmt.Errorf("GetUser: %v", err)
 	}
-	selectParams[columnName] = email
+
+	var user *models.User
+	if users == nil || len(users) <= 0 {
+		return nil, nil //fmt.Errorf("GetUser: %v", errors.New("User with given ID not found!"))
+	} else {
+		user = users[0]
+	}
+
+	return user, nil
+}
+
+func (db *dbClient) GetUserWithEmail(email string) (*models.User, error) {
+	selectParams := make(map[string]interface{})
+
+	selectParams["email"] = email
 
 	users, err := db.GetUsersWithFilters(selectParams)
 	if err != nil {
@@ -131,17 +144,10 @@ func (db *dbClient) UpdateUser(userID string, updates map[string]interface{}) (*
 
 func (db *dbClient) DeleteUser(userID string) error {
 	deleteParams := make(map[string]interface{})
-	c := models.User{}
-	v := reflect.ValueOf(c)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return fmt.Errorf("DeleteUser: %v", err)
-	}
+	deleteParams["_id"] = userID
 
-	deleteParams[columnName] = userID
-
-	deleteQuery, err := db.GetDeleteQueryForStruct(c, deleteParams)
+	deleteQuery, err := db.GetDeleteQueryForStruct(models.User{}, deleteParams)
 	if err != nil {
 		return fmt.Errorf("DeleteUser: %v", err)
 	}
@@ -155,7 +161,9 @@ func (db *dbClient) DeleteUser(userID string) error {
 }
 
 func (db *dbClient) CheckForDuplicateUser(email string) (int, error) {
-	user, err := db.GetUser(email)
+	searchParams := make(map[string]interface{})
+	searchParams["email"] = email
+	user, err := db.GetUsersWithFilters(searchParams)
 	if err != nil {
 		return http.StatusBadRequest, fmt.Errorf("CheckForDuplicateUser: %v", err)
 	}

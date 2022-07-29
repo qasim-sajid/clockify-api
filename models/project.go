@@ -8,10 +8,10 @@ type Project struct {
 	IsPublic           bool    `json:"is_public"`
 	TrackedHours       float64 `json:"tracked_hours"`
 	TrackedAmount      float64 `json:"tracked_amount"`
-	ProgressPercentage float32 `json:"progress_percentage"`
+	ProgressPercentage float64 `json:"progress_percentage"`
 
-	Client      *Client       `json:"client_id"`
-	Workspace   *Workspace    `json:"workspace_id"`
-	TeamMembers []*TeamMember `json:"-"`
-	TeamGroups  []*TeamGroup  `json:"-"`
+	Client      string   `json:"client_id"`
+	Workspace   string   `json:"workspace_id"`
+	TeamMembers []string `json:"team_members"`
+	TeamGroups  []string `json:"team_groups"`
 }

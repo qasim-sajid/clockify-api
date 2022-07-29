@@ -3,9 +3,10 @@ package models
 // TeamMember defines team_member object
 type TeamMember struct {
 	ID           string  `json:"_id"`
-	BillableRate float32 `json:"billable_rate"`
+	BillableRate float64 `json:"billable_rate"`
 
-	Workspace *Workspace `json:"workspace_id"`
-	User      *User      `json:"user_email"`
-	TeamRole  *TeamRole  `json:"team_role_id"`
+	Workspace  string   `json:"workspace_id"`
+	User       string   `json:"user_email"`
+	TeamRole   string   `json:"team_role_id"`
+	TeamGroups []string `json:"team_groups"`
 }
