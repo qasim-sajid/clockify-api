@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
@@ -12,6 +13,10 @@ import (
 
 func (db *dbClient) AddUser(user *models.User) (*models.User, int, error) {
 	if status, err := db.CheckForDuplicateUser(user.Email); err != nil {
+		return nil, status, fmt.Errorf("AddUser: %v", err)
+	}
+
+	if status, err := db.CheckForDuplicateUser(user.Username); err != nil {
 		return nil, status, fmt.Errorf("AddUser: %v", err)
 	}
 
@@ -63,12 +68,15 @@ func (db *dbClient) GetUser(userID string) (*models.User, error) {
 	return user, nil
 }
 
-func (db *dbClient) GetUserWithEmail(email string) (*models.User, error) {
-	selectParams := make(map[string]interface{})
+func (db *dbClient) GetUserWithIdentity(identity string) (*models.User, error) {
+	searchParams := make(map[string]interface{})
+	if strings.Contains(identity, "@") {
+		searchParams["email"] = identity
+	} else {
+		searchParams["username"] = identity
+	}
 
-	selectParams["email"] = email
-
-	users, err := db.GetUsersWithFilters(selectParams)
+	users, err := db.GetUsersWithFilters(searchParams)
 	if err != nil {
 		return nil, fmt.Errorf("GetUser: %v", err)
 	}
@@ -109,7 +117,7 @@ func (db *dbClient) GetUsersFromRows(rows *sql.Rows) ([]*models.User, error) {
 	for rows.Next() {
 		u := models.User{}
 
-		err := rows.Scan(&u.ID, &u.Email, &u.Name)
+		err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.Username, &u.Password)
 
 		if err != nil {
 			return nil, fmt.Errorf("GetUsersFromRows: %v", err)
@@ -160,16 +168,42 @@ func (db *dbClient) DeleteUser(userID string) error {
 	return nil
 }
 
-func (db *dbClient) CheckForDuplicateUser(email string) (int, error) {
+func (db *dbClient) CheckForDuplicateUser(identity string) (int, error) {
 	searchParams := make(map[string]interface{})
-	searchParams["email"] = email
-	user, err := db.GetUsersWithFilters(searchParams)
+	searchKey := ""
+	if strings.Contains(identity, "@") {
+		searchKey = "email"
+	} else {
+		searchKey = "username"
+	}
+	searchParams[searchKey] = identity
+
+	users, err := db.GetUsersWithFilters(searchParams)
 	if err != nil {
 		return http.StatusBadRequest, fmt.Errorf("CheckForDuplicateUser: %v", err)
 	}
-	if user != nil {
-		return http.StatusBadRequest, fmt.Errorf("CheckForDuplicateUser: %v", errors.New("User with this email already exists!"))
+	if users != nil && len(users) > 0 {
+		fmt.Println(fmt.Sprintf("User: %v", users))
+		return http.StatusBadRequest,
+			fmt.Errorf("CheckForDuplicateUser: %v", errors.New(fmt.Sprintf("User with this %v already exists!", searchKey)))
 	}
 
 	return http.StatusOK, nil
+}
+
+func (db *dbClient) CheckUserLogin(identity, password string) (*models.User, error) {
+	user, err := db.GetUserWithIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, errors.New("User with these details does not exist!")
+	}
+
+	if strings.EqualFold(user.Password, password) {
+		return user, nil
+	}
+
+	return nil, errors.New("Invalid credentials")
 }

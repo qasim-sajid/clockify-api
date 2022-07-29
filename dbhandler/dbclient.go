@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/qasim-sajid/clockify-api/conf"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
@@ -125,15 +125,15 @@ func (db *dbClient) GetInsertQuery(structType interface{}) (string, error) {
 	case "Task":
 		task := structType.(models.Task)
 		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', %t, '%s', '%s', '%s', %t, '%s')`,
-			tableName, db.GetColumnNamesForStruct(task), task.ID, task.Description, task.Billable, task.StartTime.Format(time.RFC850),
-			task.EndTime.Format(time.RFC850), task.Date.Format(time.RFC850), task.IsActive, task.Project)
+			tableName, db.GetColumnNamesForStruct(task), task.ID, task.Description, task.Billable, task.StartTime.Format(conf.TIME_LAYOUT),
+			task.EndTime.Format(conf.TIME_LAYOUT), task.Date.Format(conf.TIME_LAYOUT), task.IsActive, task.Project)
 	case "TeamGroup":
 		teamGroup := structType.(models.TeamGroup)
 		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', '%s')`,
 			tableName, db.GetColumnNamesForStruct(teamGroup), teamGroup.ID, teamGroup.Name, teamGroup.Workspace)
 	case "TeamMember":
 		teamMember := structType.(models.TeamMember)
-		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', %f, '%s', '%s''%s')`, tableName, db.GetColumnNamesForStruct(teamMember),
+		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', %f, '%s', '%s', '%s')`, tableName, db.GetColumnNamesForStruct(teamMember),
 			teamMember.ID, teamMember.BillableRate, teamMember.Workspace, teamMember.User, teamMember.TeamRole)
 	case "TeamRole":
 		teamRole := structType.(models.TeamRole)
@@ -141,8 +141,8 @@ func (db *dbClient) GetInsertQuery(structType interface{}) (string, error) {
 			tableName, db.GetColumnNamesForStruct(teamRole), teamRole.ID, teamRole.Role)
 	case "User":
 		user := structType.(models.User)
-		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', '%s')`,
-			tableName, db.GetColumnNamesForStruct(user), user.ID, user.Email, user.Name)
+		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', '%s', '%s', '%s')`,
+			tableName, db.GetColumnNamesForStruct(user), user.ID, user.Name, user.Email, user.Username, user.Password)
 	case "Workspace":
 		workspace := structType.(models.Workspace)
 		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s')`,
@@ -334,6 +334,9 @@ func (db *dbClient) GetColumnNamesForStruct(structType interface{}) string {
 			r = reflect.Indirect(reflect.ValueOf(structType)).Type().Field(i)
 		}
 		if r.Type.Kind() == reflect.Slice {
+			continue
+		}
+		if r.Type.Kind() == reflect.Array {
 			continue
 		}
 
