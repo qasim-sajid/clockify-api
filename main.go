@@ -14,10 +14,15 @@ import (
 func main() {
 	conf.InitConfigs()
 
+	//Get handler instance
 	apiHandler, err := handler.NewHandler()
 	if err != nil {
 		panic(err)
 	}
+
+	//Setup DB Connection
+	apiHandler.DB.SetupDB()
+	defer apiHandler.DB.CloseDB()
 
 	router := setupRouter(apiHandler)
 

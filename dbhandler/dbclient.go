@@ -28,23 +28,25 @@ func NewDBClient(dbName string) (h DbHandler, err error) {
 var dbConnection *sql.DB
 
 // DB set up
-func SetupDB() {
+func (db *dbClient) SetupDB() {
 	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",
 		conf.Configs.DBUser, conf.Configs.DBPassword, conf.Configs.DBName, conf.Configs.DBHost, conf.Configs.DBPort)
-	db, err := sql.Open("postgres", dbinfo)
+	dbC, err := sql.Open("postgres", dbinfo)
 
 	if err != nil {
 		panic(fmt.Errorf("SetupDB: %v", err))
 	}
 
-	dbConnection = db
+	dbConnection = dbC
+}
+
+func (db *dbClient) CloseDB() {
+	if dbConnection != nil {
+		dbConnection.Close()
+	}
 }
 
 func (db *dbClient) RunInsertQuery(query string) (sql.Result, error) {
-	if dbConnection == nil {
-		SetupDB()
-	}
-
 	result, err := dbConnection.Exec(query)
 
 	if err != nil {
@@ -55,10 +57,6 @@ func (db *dbClient) RunInsertQuery(query string) (sql.Result, error) {
 }
 
 func (db *dbClient) RunSelectQuery(query string) (*sql.Rows, error) {
-	if dbConnection == nil {
-		SetupDB()
-	}
-
 	rows, err := dbConnection.Query(query)
 
 	if err != nil {
@@ -69,10 +67,6 @@ func (db *dbClient) RunSelectQuery(query string) (*sql.Rows, error) {
 }
 
 func (db *dbClient) RunUpdateQuery(query string) (sql.Result, error) {
-	if dbConnection == nil {
-		SetupDB()
-	}
-
 	result, err := dbConnection.Exec(query)
 
 	if err != nil {
@@ -83,10 +77,6 @@ func (db *dbClient) RunUpdateQuery(query string) (sql.Result, error) {
 }
 
 func (db *dbClient) RunDeleteQuery(query string) (sql.Result, error) {
-	if dbConnection == nil {
-		SetupDB()
-	}
-
 	result, err := dbConnection.Exec(query)
 
 	if err != nil {
