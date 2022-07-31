@@ -51,7 +51,7 @@ func verifyUserToken(authToken string) (*jwt.Token, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return http.StatusUnauthorized, errors.New("Not Authorized")
 		}
-		return []byte(conf.Signing_Key), nil
+		return []byte(conf.Configs.SigningKey), nil
 	})
 
 	if err != nil {

@@ -12,6 +12,8 @@ import (
 
 // Main function
 func main() {
+	conf.InitConfigs()
+
 	apiHandler, err := handler.NewHandler()
 	if err != nil {
 		panic(err)

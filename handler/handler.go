@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 
+	"github.com/qasim-sajid/clockify-api/conf"
 	"github.com/qasim-sajid/clockify-api/dbhandler"
 )
 
@@ -13,7 +14,7 @@ type Handler struct {
 
 //NewHandler implements constructor for Handler
 func NewHandler() (*Handler, error) {
-	dbC, err := dbhandler.NewDBClient("DBClient")
+	dbC, err := dbhandler.NewDBClient(conf.Configs.DBName)
 	if err != nil {
 		return nil, fmt.Errorf("NewHandler: %v", err)
 	}

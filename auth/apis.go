@@ -114,7 +114,7 @@ func RefreshUserTokenPOST(h *handler.Handler) gin.HandlerFunc {
 				c.JSON(http.StatusUnauthorized, "Not Authorized")
 				return nil, errors.New("Not Authorized")
 			}
-			return []byte(conf.Signing_Key), nil
+			return []byte(conf.Configs.RefreshSigningKey), nil
 		})
 
 		if err != nil {

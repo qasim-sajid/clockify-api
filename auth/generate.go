@@ -21,7 +21,7 @@ func GenerateJWT(user *models.User) (string, error) {
 	claims["name"] = user.Name
 	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
 
-	tokenString, err := token.SignedString([]byte(conf.Signing_Key))
+	tokenString, err := token.SignedString([]byte(conf.Configs.SigningKey))
 	if err != nil {
 		return "", fmt.Errorf("Unable to generate token: %s", err.Error())
 	}
@@ -37,7 +37,7 @@ func GenerateRefreshJWT(user *models.User) (string, error) {
 	claims["authorized"] = true
 	claims["user_id"] = user.ID
 	claims["exp"] = time.Now().Add(time.Hour * 6).Unix()
-	tokenString, err := token.SignedString([]byte(conf.Signing_Key))
+	tokenString, err := token.SignedString([]byte(conf.Configs.RefreshSigningKey))
 
 	if err != nil {
 		return "", fmt.Errorf("Unable to generate token: %s", err.Error())

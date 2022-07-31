@@ -12,12 +12,6 @@ import (
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
-const (
-	DB_USER     = "postgres"
-	DB_PASSWORD = "dbpass444"
-	DB_NAME     = "ClockifyApp"
-)
-
 type dbClient struct {
 	dbName string
 }
@@ -35,7 +29,8 @@ var dbConnection *sql.DB
 
 // DB set up
 func SetupDB() {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", DB_USER, DB_PASSWORD, DB_NAME)
+	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",
+		conf.Configs.DBUser, conf.Configs.DBPassword, conf.Configs.DBName, conf.Configs.DBHost, conf.Configs.DBPort)
 	db, err := sql.Open("postgres", dbinfo)
 
 	if err != nil {
