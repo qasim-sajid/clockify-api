@@ -22,7 +22,7 @@ func (db *dbClient) AddUser(user *models.User) (*models.User, int, error) {
 
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, errors.New("unable to generate id")
 	}
 	user.ID = fmt.Sprintf("u_%v", id)
 
@@ -182,10 +182,9 @@ func (db *dbClient) CheckForDuplicateUser(identity string) (int, error) {
 	if err != nil {
 		return http.StatusBadRequest, fmt.Errorf("CheckForDuplicateUser: %v", err)
 	}
-	if users != nil && len(users) > 0 {
-		fmt.Println(fmt.Sprintf("User: %v", users))
+	if len(users) > 0 {
 		return http.StatusBadRequest,
-			fmt.Errorf("CheckForDuplicateUser: %v", errors.New(fmt.Sprintf("User with this %v already exists!", searchKey)))
+			fmt.Errorf("CheckForDuplicateUser: user with this %v already exists", searchKey)
 	}
 
 	return http.StatusOK, nil
@@ -198,12 +197,12 @@ func (db *dbClient) CheckUserLogin(identity, password string) (*models.User, err
 	}
 
 	if user == nil {
-		return nil, errors.New("User with these details does not exist!")
+		return nil, errors.New("user with these details does not exist")
 	}
 
 	if strings.EqualFold(user.Password, password) {
 		return user, nil
 	}
 
-	return nil, errors.New("Invalid credentials")
+	return nil, errors.New("invalid credentials")
 }

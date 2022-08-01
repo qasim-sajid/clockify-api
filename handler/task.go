@@ -45,7 +45,10 @@ func AddTask(c *gin.Context, h *Handler, origin *models.User) {
 
 	task.Project = c.Query("project_id")
 
-	task.Tags = strings.Split(c.Query("tags"), ",")
+	tags := strings.Split(c.Query("tags"), ",")
+	if len(tags) > 0 && tags[0] != "" {
+		task.Tags = tags
+	}
 
 	task, _, err = h.DB.AddTask(task)
 	if err != nil {

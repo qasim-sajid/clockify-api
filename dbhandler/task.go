@@ -16,7 +16,7 @@ import (
 func (db *dbClient) AddTask(task *models.Task) (*models.Task, int, error) {
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, errors.New("unable to generate id")
 	}
 	task.ID = fmt.Sprintf("t_%v", id)
 
@@ -39,7 +39,7 @@ func (db *dbClient) AddTask(task *models.Task) (*models.Task, int, error) {
 }
 
 func (db *dbClient) AddTaskTags(taskID string, tags []string) error {
-	if tags == nil {
+	if tags == nil || tags[0] == "" {
 		return nil
 	}
 
@@ -79,7 +79,7 @@ func (db *dbClient) GetTagForTask(taskID, tagID string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("GetTagForTask: %v", errors.New("Tag with given ID not found!"))
+	return "", fmt.Errorf("GetTagForTask: %v", errors.New("tag with given id not found"))
 }
 
 func (db *dbClient) GetAllTasks() ([]*models.Task, error) {
@@ -103,7 +103,7 @@ func (db *dbClient) GetTask(taskID string) (*models.Task, error) {
 
 	var task *models.Task
 	if tasks == nil || len(tasks) <= 0 {
-		return nil, fmt.Errorf("GetTask: %v", errors.New("Task with given ID not found!"))
+		return nil, fmt.Errorf("GetTask: %v", errors.New("task with given id not found"))
 	} else {
 		task = tasks[0]
 	}
@@ -208,10 +208,11 @@ func (db *dbClient) GetTaskTags(taskID string) ([]string, error) {
 func (db *dbClient) UpdateTask(taskID string, updates map[string]interface{}) (*models.Task, error) {
 	if v, ok := updates["tags"]; ok {
 		tagIDs := strings.Split(v.(string), ",")
-
-		err := db.UpdateTaskTags(taskID, tagIDs)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateTask: %v", err)
+		if len(tagIDs) > 0 && tagIDs[0] != "" {
+			err := db.UpdateTaskTags(taskID, tagIDs)
+			if err != nil {
+				return nil, fmt.Errorf("UpdateTask: %v", err)
+			}
 		}
 		delete(updates, "tags")
 	}

@@ -100,26 +100,61 @@ func (db *dbClient) GetInsertQuery(structType interface{}) (string, error) {
 			tableName, db.GetColumnNamesForStruct(client), client.ID, client.Name, client.Address, client.Note, client.IsArchived)
 	case "Project":
 		project := structType.(models.Project)
-		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', '%s', %t, %f, %f, %f, '%s', '%s')`,
+		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', '%s', %t, %f, %f, %f`,
 			tableName, db.GetColumnNamesForStruct(project), project.ID, project.Name, project.ColorTag, project.IsPublic,
-			project.TrackedHours, project.TrackedAmount, project.ProgressPercentage, project.Client, project.Workspace)
+			project.TrackedHours, project.TrackedAmount, project.ProgressPercentage)
+		if project.Client != "" {
+			query = fmt.Sprintf(`%s, '%s'`, query, project.Client)
+		} else {
+			query = fmt.Sprintf(`%s, %v`, query, "null")
+		}
+		if project.Workspace != "" {
+			query = fmt.Sprintf(`%s, '%s')`, query, project.Workspace)
+		} else {
+			query = fmt.Sprintf(`%s, %v)`, query, "null")
+		}
 	case "Tag":
 		tag := structType.(models.Tag)
 		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s')`,
 			tableName, db.GetColumnNamesForStruct(tag), tag.ID, tag.Name)
 	case "Task":
 		task := structType.(models.Task)
-		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', %t, '%s', '%s', '%s', %t, '%s')`,
+		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', %t, '%s', '%s', '%s', %t`,
 			tableName, db.GetColumnNamesForStruct(task), task.ID, task.Description, task.Billable, task.StartTime.Format(conf.TIME_LAYOUT),
-			task.EndTime.Format(conf.TIME_LAYOUT), task.Date.Format(conf.TIME_LAYOUT), task.IsActive, task.Project)
+			task.EndTime.Format(conf.TIME_LAYOUT), task.Date.Format(conf.TIME_LAYOUT), task.IsActive)
+		if task.Project != "" {
+			query = fmt.Sprintf(`%s, '%s')`, query, task.Project)
+		} else {
+			query = fmt.Sprintf(`%s, %v)`, query, "null")
+		}
 	case "TeamGroup":
 		teamGroup := structType.(models.TeamGroup)
-		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s', '%s')`,
-			tableName, db.GetColumnNamesForStruct(teamGroup), teamGroup.ID, teamGroup.Name, teamGroup.Workspace)
+		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s'`,
+			tableName, db.GetColumnNamesForStruct(teamGroup), teamGroup.ID, teamGroup.Name)
+		if teamGroup.Workspace != "" {
+			query = fmt.Sprintf(`%s, '%s')`, query, teamGroup.Workspace)
+		} else {
+			query = fmt.Sprintf(`%s, %v)`, query, "null")
+		}
 	case "TeamMember":
 		teamMember := structType.(models.TeamMember)
-		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', %f, '%s', '%s', '%s')`, tableName, db.GetColumnNamesForStruct(teamMember),
-			teamMember.ID, teamMember.BillableRate, teamMember.Workspace, teamMember.User, teamMember.TeamRole)
+		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', %f`, tableName, db.GetColumnNamesForStruct(teamMember),
+			teamMember.ID, teamMember.BillableRate)
+		if teamMember.Workspace != "" {
+			query = fmt.Sprintf(`%s, '%s'`, query, teamMember.Workspace)
+		} else {
+			query = fmt.Sprintf(`%s, %v`, query, "null")
+		}
+		if teamMember.User != "" {
+			query = fmt.Sprintf(`%s, '%s'`, query, teamMember.User)
+		} else {
+			query = fmt.Sprintf(`%s, %v`, query, "null")
+		}
+		if teamMember.TeamRole != "" {
+			query = fmt.Sprintf(`%s, '%s')`, query, teamMember.TeamRole)
+		} else {
+			query = fmt.Sprintf(`%s, %v)`, query, "null")
+		}
 	case "TeamRole":
 		teamRole := structType.(models.TeamRole)
 		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', '%s')`,
@@ -134,7 +169,7 @@ func (db *dbClient) GetInsertQuery(structType interface{}) (string, error) {
 			tableName, db.GetColumnNamesForStruct(workspace), workspace.ID, workspace.Name)
 	default:
 		return ``, fmt.Errorf("GetInsertQuery: %v",
-			errors.New("Insert query generation error!"))
+			errors.New("insert query generation error"))
 	}
 
 	return query, nil
@@ -185,7 +220,7 @@ func (db *dbClient) GetSelectQueryForStruct(structType interface{}, searchParams
 		return query, nil
 	}
 
-	return ``, fmt.Errorf("GetSelectQueryForStruct: %v", errors.New("Select query generation error!"))
+	return ``, fmt.Errorf("GetSelectQueryForStruct: %v", errors.New("select query generation error"))
 }
 
 func (db *dbClient) GetUpdateQueryForStruct(structType interface{}, itemID string, updates map[string]interface{}) (string, error) {
@@ -234,7 +269,7 @@ func (db *dbClient) GetUpdateQueryForStruct(structType interface{}, itemID strin
 		return query, nil
 	}
 
-	return ``, fmt.Errorf("GetUpdateQueryForStruct: %v", errors.New("Update query generation error!"))
+	return ``, fmt.Errorf("GetUpdateQueryForStruct: %v", errors.New("update query generation error"))
 }
 
 func (db *dbClient) GetDeleteQueryForStruct(structType interface{}, columnParams map[string]interface{}) (string, error) {
@@ -282,7 +317,7 @@ func (db *dbClient) GetDeleteQueryForStruct(structType interface{}, columnParams
 		return query, nil
 	}
 
-	return ``, fmt.Errorf("GetSelectQueryForStruct: %v", errors.New("Select query generation error!"))
+	return ``, fmt.Errorf("GetSelectQueryForStruct: %v", errors.New("select query generation error"))
 }
 
 func (db *dbClient) GetTableNameForStruct(t interface{}) (string, error) {
@@ -385,7 +420,7 @@ func (db *dbClient) GetInsertQueryForCompositeTable(tableName string, valuesMap 
 	}
 
 	if i <= 0 {
-		return "", errors.New("GetInsertQueryForCompositeTable: No values given!")
+		return "", errors.New("getInsertqueryforcompositetable: no values given")
 
 	} else {
 		query = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, columnNames, values)

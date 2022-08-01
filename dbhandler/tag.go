@@ -13,7 +13,7 @@ import (
 func (db *dbClient) AddTag(tag *models.Tag) (*models.Tag, int, error) {
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, errors.New("unable to generate id")
 	}
 	tag.ID = fmt.Sprintf("t_%v", id)
 
@@ -51,7 +51,7 @@ func (db *dbClient) GetTag(tagID string) (*models.Tag, error) {
 
 	var tag *models.Tag
 	if tags == nil || len(tags) <= 0 {
-		return nil, fmt.Errorf("GetTag: %v", errors.New("Tag with given ID not found!"))
+		return nil, fmt.Errorf("GetTag: %v", errors.New("tag with given id not found"))
 	} else {
 		tag = tags[0]
 	}

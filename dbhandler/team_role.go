@@ -13,7 +13,7 @@ import (
 func (db *dbClient) AddTeamRole(teamRole *models.TeamRole) (*models.TeamRole, int, error) {
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, errors.New("unable to generate id")
 	}
 	teamRole.ID = fmt.Sprintf("tr_%v", id)
 
@@ -51,7 +51,7 @@ func (db *dbClient) GetTeamRole(teamRoleID string) (*models.TeamRole, error) {
 
 	var teamRole *models.TeamRole
 	if teamRoles == nil || len(teamRoles) <= 0 {
-		return nil, fmt.Errorf("GetTeamRole: %v", errors.New("TeamRole with given ID not found!"))
+		return nil, fmt.Errorf("GetTeamRole: %v", errors.New("team role with given id not found"))
 	} else {
 		teamRole = teamRoles[0]
 	}
