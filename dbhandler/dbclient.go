@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/qasim-sajid/clockify-api/conf"
 	"github.com/qasim-sajid/clockify-api/models"
+	"github.com/qasim-sajid/clockify-api/queries"
 )
 
 type dbClient struct {
@@ -38,12 +39,18 @@ func (db *dbClient) SetupDB() {
 	}
 
 	dbConnection = dbC
+
+	initializeTablesIfNotExist()
 }
 
 func (db *dbClient) CloseDB() {
 	if dbConnection != nil {
 		dbConnection.Close()
 	}
+}
+
+func initializeTablesIfNotExist() {
+	_, _ = dbConnection.Exec(queries.CREATE_TABLES)
 }
 
 func (db *dbClient) RunInsertQuery(query string) (sql.Result, error) {

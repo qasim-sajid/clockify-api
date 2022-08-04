@@ -36,7 +36,7 @@ services:
     ports:
       - '1234:5432'
     volumes:
-      - ./docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+      - ./pg_data:/var/lib/postgresql/data
     networks:
       - learning
 
@@ -51,7 +51,7 @@ services:
     ports:
       - '4568:5432'
     volumes:
-      - ./docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+      - ./pg_data_test:/var/lib/postgresql/data
     networks:
       - learning
 

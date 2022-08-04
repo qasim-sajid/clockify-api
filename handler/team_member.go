@@ -17,6 +17,7 @@ func AddTeamMember(c *gin.Context, h *Handler, origin *models.User) {
 	teamMember.BillableRate, err = strconv.ParseFloat(c.Query("billable_rate"), 64)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	teamMember.Workspace = c.Query("workspace_id")
@@ -37,6 +38,7 @@ func GetAllTeamMembers(c *gin.Context, h *Handler, origin *models.User) {
 	teamMembers, err := h.DB.GetAllTeamMembers()
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, teamMembers)
@@ -58,6 +60,7 @@ func UpdateTeamMember(c *gin.Context, h *Handler, origin *models.User) {
 	for k, v := range c.Request.URL.Query() {
 		if len(v) > 1 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Duplicate parameter found!"})
+			return
 		} else {
 			updates[k] = v[0]
 		}

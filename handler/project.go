@@ -19,21 +19,25 @@ func AddProject(c *gin.Context, h *Handler, origin *models.User) {
 	project.IsPublic, err = strconv.ParseBool(c.Query("is_public"))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	project.TrackedHours, err = strconv.ParseFloat(c.Query("tracked_hours"), 64)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	project.TrackedAmount, err = strconv.ParseFloat(c.Query("tracked_amount"), 64)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	project.ProgressPercentage, err = strconv.ParseFloat(c.Query("progress_percentage"), 32)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	project.Client = c.Query("client_id")
@@ -52,6 +56,7 @@ func GetAllProjects(c *gin.Context, h *Handler, origin *models.User) {
 	projects, err := h.DB.GetAllProjects()
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, projects)
@@ -73,6 +78,7 @@ func UpdateProject(c *gin.Context, h *Handler, origin *models.User) {
 	for k, v := range c.Request.URL.Query() {
 		if len(v) > 1 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Duplicate parameter found!"})
+			return
 		} else {
 			updates[k] = v[0]
 		}

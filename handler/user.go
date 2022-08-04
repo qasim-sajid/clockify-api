@@ -27,6 +27,7 @@ func GetAllUsers(c *gin.Context, h *Handler, origin *models.User) {
 	users, err := h.DB.GetAllUsers()
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, users)
@@ -48,6 +49,7 @@ func UpdateUser(c *gin.Context, h *Handler, origin *models.User) {
 	for k, v := range c.Request.URL.Query() {
 		if len(v) > 1 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Duplicate parameter found!"})
+			return
 		} else {
 			updates[k] = v[0]
 		}

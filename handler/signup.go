@@ -15,7 +15,7 @@ func SignUpUser(h *Handler) gin.HandlerFunc {
 
 		err := c.ShouldBindJSON(user)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("Invalid request format: %v", err).Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("invalid request format: %v", err).Error()})
 			return
 		}
 
@@ -37,13 +37,13 @@ func SignUpUser(h *Handler) gin.HandlerFunc {
 
 func validateUser(user *models.User) (*models.User, error) {
 	if user.Name == "" {
-		return nil, errors.New("Name is missing")
+		return nil, errors.New("name is missing")
 	} else if user.Email == "" {
-		return nil, errors.New("Email is missing")
+		return nil, errors.New("email is missing")
 	} else if user.Username == "" {
-		return nil, errors.New("Username is missing")
+		return nil, errors.New("username is missing")
 	} else if user.Password == "" {
-		return nil, errors.New("Password is missing")
+		return nil, errors.New("password is missing")
 	}
 
 	return user, nil
