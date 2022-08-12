@@ -7,11 +7,18 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
 func (db *dbClient) AddWorkspace(workspace *models.Workspace) (*models.Workspace, int, error) {
-	insertQuery, err := db.GetInsertQueryForStruct(workspace)
+	id := uuid.New().String()
+	if id == "" {
+		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+	}
+	workspace.ID = fmt.Sprintf("w_%v", id)
+
+	insertQuery, err := db.GetInsertQuery(*workspace)
 	if err != nil {
 		return nil, -1, fmt.Errorf("AddWorkspace: %v", err)
 	}
@@ -103,9 +110,11 @@ func (db *dbClient) UpdateWorkspace(workspaceID string, updates map[string]inter
 		return nil, fmt.Errorf("UpdateWorkspace: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateWorkspace: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateWorkspace: %v", err)
+		}
 	}
 
 	workspace, err := db.GetWorkspace(workspaceID)

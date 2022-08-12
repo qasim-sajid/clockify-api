@@ -7,11 +7,18 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
 func (db *dbClient) AddClient(client *models.Client) (*models.Client, int, error) {
-	insertQuery, err := db.GetInsertQueryForStruct(client)
+	id := uuid.New().String()
+	if id == "" {
+		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+	}
+	client.ID = fmt.Sprintf("c_%v", id)
+
+	insertQuery, err := db.GetInsertQuery(*client)
 	if err != nil {
 		return nil, -1, fmt.Errorf("AddClient: %v", err)
 	}
@@ -103,9 +110,11 @@ func (db *dbClient) UpdateClient(clientID string, updates map[string]interface{}
 		return nil, fmt.Errorf("UpdateClient: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateClient: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateClient: %v", err)
+		}
 	}
 
 	client, err := db.GetClient(clientID)

@@ -153,7 +153,7 @@ func (db *dbClient) GetInsertQuery(structType interface{}) (string, error) {
 		}
 	case "TeamMember":
 		teamMember := structType.(models.TeamMember)
-		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', %f)`,
+		query = fmt.Sprintf(`INSERT INTO %s (%s) VALUES ('%s', %f`,
 			tableName, db.GetColumnNamesForStruct(teamMember), teamMember.ID, teamMember.BillableRate)
 		if teamMember.Workspace != nil {
 			query = fmt.Sprintf(`%s, '%s'`, query, teamMember.Workspace.ID)
@@ -190,62 +190,62 @@ func (db *dbClient) GetInsertQuery(structType interface{}) (string, error) {
 	return query, nil
 }
 
-func (db *dbClient) GetInsertQueryForStruct(structType interface{}) (string, error) {
-	if reflect.ValueOf(structType).Kind() == reflect.Struct {
-		tableName, err := db.GetTableNameForStruct(structType)
-		if err != nil {
-			return ``, fmt.Errorf("GetInsertQueryForStruct: %v", err)
-		}
+// func (db *dbClient) GetInsertQueryForStruct(structType interface{}) (string, error) {
+// 	if reflect.ValueOf(structType).Kind() == reflect.Struct {
+// 		tableName, err := db.GetTableNameForStruct(structType)
+// 		if err != nil {
+// 			return ``, fmt.Errorf("GetInsertQueryForStruct: %v", err)
+// 		}
 
-		query := fmt.Sprintf("INSERT INTO %s values(", tableName)
+// 		query := fmt.Sprintf("INSERT INTO %s values(", tableName)
 
-		v := reflect.ValueOf(structType)
-		for i := 0; i < v.NumField(); i++ {
+// 		v := reflect.ValueOf(structType)
+// 		for i := 0; i < v.NumField(); i++ {
 
-			columnName, err := db.GetColumnNameForStructField(v.Field(i).Type().Field(i))
+// 			columnName, err := db.GetColumnNameForStructField(v.Field(i).Type().Field(i))
 
-			if err != nil {
-				return ``, fmt.Errorf("GetInsertQueryForStruct: %v", err)
-			}
+// 			if err != nil {
+// 				return ``, fmt.Errorf("GetInsertQueryForStruct: %v", err)
+// 			}
 
-			if columnName == "IgnoreField" {
-				continue
-			}
+// 			if columnName == "IgnoreField" {
+// 				continue
+// 			}
 
-			kind := v.Field(i).Kind()
-			if kind == reflect.Int || kind == reflect.Int64 {
-				if i == 0 {
-					query = fmt.Sprintf("%s%d", query, v.Field(i).Int())
-				} else {
-					query = fmt.Sprintf("%s, %d", query, v.Field(i).Int())
-				}
-			} else if kind == reflect.Float32 || kind == reflect.Float64 {
-				if i == 0 {
-					query = fmt.Sprintf("%s%f", query, v.Field(i).Float())
-				} else {
-					query = fmt.Sprintf("%s, %f", query, v.Field(i).Float())
-				}
-			} else if kind == reflect.Bool {
-				if i == 0 {
-					query = fmt.Sprintf("%s%t", query, v.Field(i).Bool())
-				} else {
-					query = fmt.Sprintf("%s, %t", query, v.Field(i).Bool())
-				}
-			} else {
-				if i == 0 {
-					query = fmt.Sprintf("%s\"%s\"", query, v.Field(i).String())
-				} else {
-					query = fmt.Sprintf("%s, \"%s\"", query, v.Field(i).String())
-				}
-			}
-		}
+// 			kind := v.Field(i).Kind()
+// 			if kind == reflect.Int || kind == reflect.Int64 {
+// 				if i == 0 {
+// 					query = fmt.Sprintf("%s%d", query, v.Field(i).Int())
+// 				} else {
+// 					query = fmt.Sprintf("%s, %d", query, v.Field(i).Int())
+// 				}
+// 			} else if kind == reflect.Float32 || kind == reflect.Float64 {
+// 				if i == 0 {
+// 					query = fmt.Sprintf("%s%f", query, v.Field(i).Float())
+// 				} else {
+// 					query = fmt.Sprintf("%s, %f", query, v.Field(i).Float())
+// 				}
+// 			} else if kind == reflect.Bool {
+// 				if i == 0 {
+// 					query = fmt.Sprintf("%s%t", query, v.Field(i).Bool())
+// 				} else {
+// 					query = fmt.Sprintf("%s, %t", query, v.Field(i).Bool())
+// 				}
+// 			} else {
+// 				if i == 0 {
+// 					query = fmt.Sprintf("%s'%s'", query, v.Field(i).String())
+// 				} else {
+// 					query = fmt.Sprintf("%s, '%s'", query, v.Field(i).String())
+// 				}
+// 			}
+// 		}
 
-		query = fmt.Sprintf("%s)", query)
-		return query, nil
-	}
+// 		query = fmt.Sprintf("%s)", query)
+// 		return query, nil
+// 	}
 
-	return ``, fmt.Errorf("GetInsertQueryForStruct: %v %v", errors.New("Insert query generation error: "), reflect.ValueOf(structType).Kind())
-}
+// 	return ``, fmt.Errorf("GetInsertQueryForStruct: %v %v", errors.New("Insert query generation error: "), reflect.ValueOf(structType).Kind())
+// }
 
 func (db *dbClient) GetSelectQueryForStruct(structType interface{}, searchParams map[string]interface{}) (string, error) {
 	if reflect.ValueOf(structType).Kind() == reflect.Struct {
@@ -262,27 +262,27 @@ func (db *dbClient) GetSelectQueryForStruct(structType interface{}, searchParams
 			kind := val.Kind()
 			if kind == reflect.Int || kind == reflect.Int64 {
 				if i == 0 {
-					query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Field(i).Int())
+					query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Int())
 				} else {
-					query = fmt.Sprintf("%s && %s = %d", query, k, val.Field(i).Int())
+					query = fmt.Sprintf("%s && %s = %d", query, k, val.Int())
 				}
 			} else if kind == reflect.Float32 || kind == reflect.Float64 {
 				if i == 0 {
-					query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Field(i).Float())
+					query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Float())
 				} else {
-					query = fmt.Sprintf("%s && %s = %f", query, k, val.Field(i).Float())
+					query = fmt.Sprintf("%s && %s = %f", query, k, val.Float())
 				}
 			} else if kind == reflect.Bool {
 				if i == 0 {
-					query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Field(i).Bool())
+					query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Bool())
 				} else {
-					query = fmt.Sprintf("%s && %s = %t", query, k, val.Field(i).Bool())
+					query = fmt.Sprintf("%s && %s = %t", query, k, val.Bool())
 				}
 			} else {
 				if i == 0 {
-					query = fmt.Sprintf("%s WHERE %s = \"%s\"", k, query, val.Field(i).String())
+					query = fmt.Sprintf("%s WHERE %s = '%s'", query, k, val.String())
 				} else {
-					query = fmt.Sprintf("%s && %s = \"%s\"", k, query, val.Field(i).String())
+					query = fmt.Sprintf("%s && %s = '%s'", query, k, val.String())
 				}
 			}
 
@@ -310,34 +310,34 @@ func (db *dbClient) GetUpdateQueryForStruct(structType interface{}, itemID strin
 			val := reflect.ValueOf(v)
 			if kind == reflect.Int || kind == reflect.Int64 {
 				if i == 0 {
-					query = fmt.Sprintf("%s SET %s = %d", query, k, val.Field(i).Int())
+					query = fmt.Sprintf("%s SET %s = %d", query, k, val.Int())
 				} else {
-					query = fmt.Sprintf("%s, %s = %d", query, k, val.Field(i).Int())
+					query = fmt.Sprintf("%s, %s = %d", query, k, val.Int())
 				}
 			} else if kind == reflect.Float32 || kind == reflect.Float64 {
 				if i == 0 {
-					query = fmt.Sprintf("%s SET %s = %f", query, k, val.Field(i).Float())
+					query = fmt.Sprintf("%s SET %s = %f", query, k, val.Float())
 				} else {
-					query = fmt.Sprintf("%s, %s = %f", query, k, val.Field(i).Float())
+					query = fmt.Sprintf("%s, %s = %f", query, k, val.Float())
 				}
 			} else if kind == reflect.Bool {
 				if i == 0 {
-					query = fmt.Sprintf("%s SET %s = %t", query, k, val.Field(i).Bool())
+					query = fmt.Sprintf("%s SET %s = %t", query, k, val.Bool())
 				} else {
-					query = fmt.Sprintf("%s, %s = %t", query, k, val.Field(i).Bool())
+					query = fmt.Sprintf("%s, %s = %t", query, k, val.Bool())
 				}
 			} else {
 				if i == 0 {
-					query = fmt.Sprintf("%s SET %s = \"%s\"", k, query, val.Field(i).String())
+					query = fmt.Sprintf("%s SET %s = '%s'", query, k, val.String())
 				} else {
-					query = fmt.Sprintf("%s, %s = \"%s\"", k, query, val.Field(i).String())
+					query = fmt.Sprintf("%s, %s = '%s'", query, k, val.String())
 				}
 			}
 
 			i++
 		}
 
-		query = fmt.Sprintf("%s WHERE _id = \"%s\")", query, itemID)
+		query = fmt.Sprintf("%s WHERE _id = '%s'", query, itemID)
 		return query, nil
 	}
 
@@ -359,27 +359,27 @@ func (db *dbClient) GetDeleteQueryForStruct(structType interface{}, columnParams
 			val := reflect.ValueOf(v)
 			if kind == reflect.Int || kind == reflect.Int64 {
 				if i == 0 {
-					query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Field(i).Int())
+					query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Int())
 				} else {
-					query = fmt.Sprintf("%s && %s = %d", query, k, val.Field(i).Int())
+					query = fmt.Sprintf("%s && %s = %d", query, k, val.Int())
 				}
 			} else if kind == reflect.Float32 || kind == reflect.Float64 {
 				if i == 0 {
-					query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Field(i).Float())
+					query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Float())
 				} else {
-					query = fmt.Sprintf("%s && %s = %f", query, k, val.Field(i).Float())
+					query = fmt.Sprintf("%s && %s = %f", query, k, val.Float())
 				}
 			} else if kind == reflect.Bool {
 				if i == 0 {
-					query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Field(i).Bool())
+					query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Bool())
 				} else {
-					query = fmt.Sprintf("%s && %s = %t", query, k, val.Field(i).Bool())
+					query = fmt.Sprintf("%s && %s = %t", query, k, val.Bool())
 				}
 			} else {
 				if i == 0 {
-					query = fmt.Sprintf("%s WHERE %s = \"%s\"", k, query, val.Field(i).String())
+					query = fmt.Sprintf("%s WHERE %s = '%s'", query, k, val.String())
 				} else {
-					query = fmt.Sprintf("%s && %s = \"%s\"", k, query, val.Field(i).String())
+					query = fmt.Sprintf("%s && %s = '%s'", query, k, val.String())
 				}
 			}
 
@@ -409,7 +409,7 @@ func (db *dbClient) GetTableNameForStruct(t interface{}) (string, error) {
 	case "TeamRole":
 		return "team_role", nil
 	case "User":
-		return "user", nil
+		return `"user"`, nil
 	case "Workspace":
 		return "workspace", nil
 	}
@@ -468,7 +468,7 @@ func (db *dbClient) GetColumnNameForStructField(t reflect.StructField) (string, 
 //Names for composite tables in database
 const (
 	PROJECT_TEAM_MEMBER    = "project_team_member"
-	PROJECT_TEAM_GROUP     = "group"
+	PROJECT_TEAM_GROUP     = "project_team_group"
 	TEAM_GROUP_TEAM_MEMBER = "team_group_team_member"
 	TASK_TAG               = "task_tag"
 )
@@ -520,27 +520,27 @@ func (db *dbClient) GetSelectQueryForCompositeTable(tableName string, searchPara
 		kind := val.Kind()
 		if kind == reflect.Int || kind == reflect.Int64 {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Field(i).Int())
+				query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Int())
 			} else {
-				query = fmt.Sprintf("%s && %s = %d", query, k, val.Field(i).Int())
+				query = fmt.Sprintf("%s && %s = %d", query, k, val.Int())
 			}
 		} else if kind == reflect.Float32 || kind == reflect.Float64 {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Field(i).Float())
+				query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Float())
 			} else {
-				query = fmt.Sprintf("%s && %s = %f", query, k, val.Field(i).Float())
+				query = fmt.Sprintf("%s && %s = %f", query, k, val.Float())
 			}
 		} else if kind == reflect.Bool {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Field(i).Bool())
+				query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Bool())
 			} else {
-				query = fmt.Sprintf("%s && %s = %t", query, k, val.Field(i).Bool())
+				query = fmt.Sprintf("%s && %s = %t", query, k, val.Bool())
 			}
 		} else {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = \"%s\"", k, query, val.Field(i).String())
+				query = fmt.Sprintf("%s WHERE %s = '%s'", query, k, val.String())
 			} else {
-				query = fmt.Sprintf("%s && %s = \"%s\"", k, query, val.Field(i).String())
+				query = fmt.Sprintf("%s && %s = '%s'", query, k, val.String())
 			}
 		}
 
@@ -559,27 +559,27 @@ func (db *dbClient) GetUpdateQueryForCompositeTable(tableName string, searchPara
 		val := reflect.ValueOf(v)
 		if kind == reflect.Int || kind == reflect.Int64 {
 			if i == 0 {
-				query = fmt.Sprintf("%s SET %s = %d", query, k, val.Field(i).Int())
+				query = fmt.Sprintf("%s SET %s = %d", query, k, val.Int())
 			} else {
-				query = fmt.Sprintf("%s, %s = %d", query, k, val.Field(i).Int())
+				query = fmt.Sprintf("%s, %s = %d", query, k, val.Int())
 			}
 		} else if kind == reflect.Float32 || kind == reflect.Float64 {
 			if i == 0 {
-				query = fmt.Sprintf("%s SET %s = %f", query, k, val.Field(i).Float())
+				query = fmt.Sprintf("%s SET %s = %f", query, k, val.Float())
 			} else {
-				query = fmt.Sprintf("%s, %s = %f", query, k, val.Field(i).Float())
+				query = fmt.Sprintf("%s, %s = %f", query, k, val.Float())
 			}
 		} else if kind == reflect.Bool {
 			if i == 0 {
-				query = fmt.Sprintf("%s SET %s = %t", query, k, val.Field(i).Bool())
+				query = fmt.Sprintf("%s SET %s = %t", query, k, val.Bool())
 			} else {
-				query = fmt.Sprintf("%s, %s = %t", query, k, val.Field(i).Bool())
+				query = fmt.Sprintf("%s, %s = %t", query, k, val.Bool())
 			}
 		} else {
 			if i == 0 {
-				query = fmt.Sprintf("%s SET %s = \"%s\"", k, query, val.Field(i).String())
+				query = fmt.Sprintf("%s SET %s = '%s'", query, k, val.String())
 			} else {
-				query = fmt.Sprintf("%s, %s = \"%s\"", k, query, val.Field(i).String())
+				query = fmt.Sprintf("%s, %s = '%s'", query, k, val.String())
 			}
 		}
 
@@ -592,27 +592,27 @@ func (db *dbClient) GetUpdateQueryForCompositeTable(tableName string, searchPara
 		kind := val.Kind()
 		if kind == reflect.Int || kind == reflect.Int64 {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Field(i).Int())
+				query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Int())
 			} else {
-				query = fmt.Sprintf("%s && %s = %d", query, k, val.Field(i).Int())
+				query = fmt.Sprintf("%s && %s = %d", query, k, val.Int())
 			}
 		} else if kind == reflect.Float32 || kind == reflect.Float64 {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Field(i).Float())
+				query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Float())
 			} else {
-				query = fmt.Sprintf("%s && %s = %f", query, k, val.Field(i).Float())
+				query = fmt.Sprintf("%s && %s = %f", query, k, val.Float())
 			}
 		} else if kind == reflect.Bool {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Field(i).Bool())
+				query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Bool())
 			} else {
-				query = fmt.Sprintf("%s && %s = %t", query, k, val.Field(i).Bool())
+				query = fmt.Sprintf("%s && %s = %t", query, k, val.Bool())
 			}
 		} else {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = \"%s\"", k, query, val.Field(i).String())
+				query = fmt.Sprintf("%s WHERE %s = '%s'", query, k, val.String())
 			} else {
-				query = fmt.Sprintf("%s && %s = \"%s\"", k, query, val.Field(i).String())
+				query = fmt.Sprintf("%s && %s = '%s'", query, k, val.String())
 			}
 		}
 
@@ -631,27 +631,27 @@ func (db *dbClient) GetDeleteQueryForCompositeTable(tableName string, searchPara
 		val := reflect.ValueOf(v)
 		if kind == reflect.Int || kind == reflect.Int64 {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Field(i).Int())
+				query = fmt.Sprintf("%s WHERE %s = %d", query, k, val.Int())
 			} else {
-				query = fmt.Sprintf("%s && %s = %d", query, k, val.Field(i).Int())
+				query = fmt.Sprintf("%s && %s = %d", query, k, val.Int())
 			}
 		} else if kind == reflect.Float32 || kind == reflect.Float64 {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Field(i).Float())
+				query = fmt.Sprintf("%s WHERE %s = %f", query, k, val.Float())
 			} else {
-				query = fmt.Sprintf("%s && %s = %f", query, k, val.Field(i).Float())
+				query = fmt.Sprintf("%s && %s = %f", query, k, val.Float())
 			}
 		} else if kind == reflect.Bool {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Field(i).Bool())
+				query = fmt.Sprintf("%s WHERE %s = %t", query, k, val.Bool())
 			} else {
-				query = fmt.Sprintf("%s && %s = %t", query, k, val.Field(i).Bool())
+				query = fmt.Sprintf("%s && %s = %t", query, k, val.Bool())
 			}
 		} else {
 			if i == 0 {
-				query = fmt.Sprintf("%s WHERE %s = \"%s\"", k, query, val.Field(i).String())
+				query = fmt.Sprintf("%s WHERE %s = '%s'", query, k, val.String())
 			} else {
-				query = fmt.Sprintf("%s && %s = \"%s\"", k, query, val.Field(i).String())
+				query = fmt.Sprintf("%s && %s = '%s'", query, k, val.String())
 			}
 		}
 

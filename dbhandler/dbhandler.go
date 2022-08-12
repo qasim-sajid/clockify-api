@@ -42,6 +42,7 @@ type DbHandler interface {
 	DeleteTeamGroup(teamGroupID string) error
 
 	AddTeamMember(*models.TeamMember) (*models.TeamMember, int, error)
+	AddTeamMemberTeamGroups(string, []*models.TeamGroup) error
 	GetAllTeamMembers() ([]*models.TeamMember, error)
 	GetTeamMembersWithFilters(searchParams map[string]interface{}) ([]*models.TeamMember, error)
 	GetTeamMember(teamMemberID string) (*models.TeamMember, error)

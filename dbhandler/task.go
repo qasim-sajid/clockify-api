@@ -8,10 +8,17 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
 func (db *dbClient) AddTask(task *models.Task) (*models.Task, int, error) {
+	id := uuid.New().String()
+	if id == "" {
+		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+	}
+	task.ID = fmt.Sprintf("t_%v", id)
+
 	insertQuery, err := db.GetInsertQuery(*task)
 	if err != nil {
 		return nil, -1, fmt.Errorf("AddTask: %v", err)
@@ -22,7 +29,56 @@ func (db *dbClient) AddTask(task *models.Task) (*models.Task, int, error) {
 		return nil, -1, fmt.Errorf("AddTask: %v", err)
 	}
 
+	err = db.AddTaskTags(task.ID, task.Tags)
+	if err != nil {
+		return nil, -1, fmt.Errorf("AddTask: %v", err)
+	}
+
 	return task, http.StatusOK, nil
+}
+
+func (db *dbClient) AddTaskTags(taskID string, tags []*models.Tag) error {
+	if tags == nil {
+		return nil
+	}
+
+	for _, t := range tags {
+		valuesMap := make(map[string]interface{})
+		valuesMap["task_id"] = taskID
+		valuesMap["tag_id"] = t.ID
+
+		//Check if value already exists
+		_, err := db.GetTagForTask(taskID, t.ID)
+		if err != nil {
+			//If value doesn't exist then insert it
+			insertQuery, err := db.GetInsertQueryForCompositeTable(TASK_TAG, valuesMap)
+			if err != nil {
+				return fmt.Errorf("AddTaskTags: %v", err)
+			}
+
+			_, err = db.RunInsertQuery(insertQuery)
+			if err != nil {
+				return fmt.Errorf("AddTaskTags: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (db *dbClient) GetTagForTask(taskID, tagID string) (*models.Tag, error) {
+	tags, err := db.GetTaskTags(taskID)
+	if err != nil {
+		return nil, fmt.Errorf("GetTagForTask: %v", err)
+	}
+
+	for _, t := range tags {
+		if t.ID == tagID {
+			return t, nil
+		}
+	}
+
+	return nil, fmt.Errorf("GetTagForTask: %v", errors.New("Tag with given ID not found!"))
 }
 
 func (db *dbClient) GetAllTasks() ([]*models.Task, error) {
@@ -167,14 +223,25 @@ func (db *dbClient) GetTaskTags(taskID string) ([]*models.Tag, error) {
 }
 
 func (db *dbClient) UpdateTask(taskID string, updates map[string]interface{}) (*models.Task, error) {
+	if v, ok := updates["task_tags"]; ok {
+		tags := v.([]*models.Tag)
+		err := db.UpdateTaskTags(taskID, tags)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateTask: %v", err)
+		}
+		delete(updates, "task_tags")
+	}
+
 	updateQuery, err := db.GetUpdateQueryForStruct(models.Task{}, taskID, updates)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateTask: %v", err)
 	}
 
-	_, err = db.RunUpdateQuery(updateQuery)
-	if err != nil {
-		return nil, fmt.Errorf("UpdateTask: %v", err)
+	if len(updates) > 0 {
+		_, err = db.RunUpdateQuery(updateQuery)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateTask: %v", err)
+		}
 	}
 
 	task, err := db.GetTask(taskID)
@@ -183,6 +250,21 @@ func (db *dbClient) UpdateTask(taskID string, updates map[string]interface{}) (*
 	}
 
 	return task, nil
+}
+
+func (db *dbClient) UpdateTaskTags(taskID string, tags []*models.Tag) error {
+	deleteParams := make(map[string]interface{})
+	_, err := db.DeleteValuesFromCompositeTable(TASK_TAG, deleteParams)
+	if err != nil {
+		return fmt.Errorf("UpdateTaskTags: %v", err)
+	}
+
+	err = db.AddTaskTags(taskID, tags)
+	if err != nil {
+		return fmt.Errorf("UpdateTaskTags: %v", err)
+	}
+
+	return nil
 }
 
 func (db *dbClient) DeleteTask(taskID string) error {
@@ -205,6 +287,14 @@ func (db *dbClient) DeleteTask(taskID string) error {
 	_, err = db.RunDeleteQuery(deleteQuery)
 	if err != nil {
 		return fmt.Errorf("DeleteTask: %v", err)
+	}
+
+	deleteParamsForColumns := make(map[string]interface{})
+	deleteParamsForColumns["task_id"] = taskID
+
+	_, err = db.DeleteValuesFromCompositeTable(TASK_TAG, deleteParamsForColumns)
+	if err != nil {
+		return fmt.Errorf("DeleteTagsForTask: %v", err)
 	}
 
 	return nil
