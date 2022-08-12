@@ -60,9 +60,10 @@ type DbHandler interface {
 	GetAllUsers() ([]*models.User, error)
 	GetUsersWithFilters(searchParams map[string]interface{}) ([]*models.User, error)
 	GetUser(userID string) (*models.User, error)
-	GetUserWithEmail(userID string) (*models.User, error)
+	GetUserWithIdentity(userID string) (*models.User, error)
 	UpdateUser(userID string, updates map[string]interface{}) (*models.User, error)
 	DeleteUser(userID string) error
+	CheckUserLogin(string, string) (*models.User, error)
 
 	AddWorkspace(*models.Workspace) (*models.Workspace, int, error)
 	GetAllWorkspaces() ([]*models.Workspace, error)

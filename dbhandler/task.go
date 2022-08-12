@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/qasim-sajid/clockify-api/conf"
 	"github.com/qasim-sajid/clockify-api/models"
 )
 
@@ -147,17 +148,17 @@ func (db *dbClient) GetTasksFromRows(rows *sql.Rows) ([]*models.Task, error) {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}
 
-		t.StartTime, err = time.Parse(time.RFC850, startTime)
+		t.StartTime, err = time.Parse(conf.TIME_LAYOUT, startTime)
 		if err != nil {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}
 
-		t.EndTime, err = time.Parse(time.RFC850, endTime)
+		t.EndTime, err = time.Parse(conf.TIME_LAYOUT, endTime)
 		if err != nil {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}
 
-		t.Date, err = time.Parse(time.RFC850, date)
+		t.Date, err = time.Parse(conf.TIME_LAYOUT, date)
 		if err != nil {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}

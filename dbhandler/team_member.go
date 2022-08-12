@@ -12,9 +12,14 @@ import (
 )
 
 func (db *dbClient) AddTeamMember(teamMember *models.TeamMember) (*models.TeamMember, int, error) {
+	err := db.checkForDuplicateTeamMember(teamMember)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("AddTeamMember: %v", err)
+	}
+
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, fmt.Errorf("AddTeamMember: %v", errors.New("Unable to generate _ID"))
 	}
 	teamMember.ID = fmt.Sprintf("tm_%v", id)
 
@@ -29,6 +34,17 @@ func (db *dbClient) AddTeamMember(teamMember *models.TeamMember) (*models.TeamMe
 	}
 
 	return teamMember, http.StatusOK, nil
+}
+
+func (db *dbClient) checkForDuplicateTeamMember(teamMember *models.TeamMember) error {
+	searchParams := make(map[string]interface{})
+	searchParams["user_email"] = teamMember.User
+	teamMembers, _ := db.GetTeamMembersWithFilters(searchParams)
+	if teamMembers != nil && len(teamMembers) > 0 {
+		return errors.New("TeamMember with this user email already exists!")
+	}
+
+	return nil
 }
 
 func (db *dbClient) GetAllTeamMembers() ([]*models.TeamMember, error) {

@@ -3,7 +3,9 @@ package main
 import (
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/qasim-sajid/clockify-api/auth"
 	"github.com/qasim-sajid/clockify-api/conf"
 	"github.com/qasim-sajid/clockify-api/handler"
 )
@@ -26,62 +28,73 @@ func main() {
 func setupRouter(h *handler.Handler) *gin.Engine {
 	router := gin.Default()
 
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*"},
+		ExposeHeaders:    []string{"*"},
+		AllowCredentials: true,
+	}))
+
 	// healthz
 	router.GET("/healthz", healthGET())
 
-	router.POST("/client", handler.AddClient(h))
-	router.GET("/clients", handler.GetAllClients(h))
-	router.GET("/clients/:client_id", handler.GetClient(h))
-	router.PUT("/clients/:client_id", handler.UpdateClient(h))
-	router.DELETE("/clients/:client_id", handler.DeleteClient(h))
+	router.POST("/signup", handler.SignUpUser(h))
+	router.POST("/login", auth.LoginUser(h))
+	router.POST("/refresh_user", auth.RefreshUserTokenPOST(h))
 
-	router.POST("/project", handler.AddProject(h))
-	router.GET("/projects", handler.GetAllProjects(h))
-	router.GET("/projects/:project_id", handler.GetProject(h))
-	router.PUT("/projects/:project_id", handler.UpdateProject(h))
-	router.DELETE("/projects/:project_id", handler.DeleteProject(h))
+	router.POST("/client", auth.IsUserAuthorized(handler.AddClient, h))
+	router.GET("/clients", auth.IsUserAuthorized(handler.GetAllClients, h))
+	router.GET("/clients/:client_id", auth.IsUserAuthorized(handler.GetClient, h))
+	router.PUT("/clients/:client_id", auth.IsUserAuthorized(handler.UpdateClient, h))
+	router.DELETE("/clients/:client_id", auth.IsUserAuthorized(handler.DeleteClient, h))
 
-	router.POST("/tag", handler.AddTag(h))
-	router.GET("/tags", handler.GetAllTags(h))
-	router.GET("/tags/:tag_id", handler.GetTag(h))
-	router.PUT("/tags/:tag_id", handler.UpdateTag(h))
-	router.DELETE("/tags/:tag_id", handler.DeleteTag(h))
+	router.POST("/project", auth.IsUserAuthorized(handler.AddProject, h))
+	router.GET("/projects", auth.IsUserAuthorized(handler.GetAllProjects, h))
+	router.GET("/projects/:project_id", auth.IsUserAuthorized(handler.GetProject, h))
+	router.PUT("/projects/:project_id", auth.IsUserAuthorized(handler.UpdateProject, h))
+	router.DELETE("/projects/:project_id", auth.IsUserAuthorized(handler.DeleteProject, h))
 
-	router.POST("/task", handler.AddTask(h))
-	router.GET("/tasks", handler.GetAllTasks(h))
-	router.GET("/tasks/:task_id", handler.GetTask(h))
-	router.PUT("/tasks/:task_id", handler.UpdateTask(h))
-	router.DELETE("/tasks/:task_id", handler.DeleteTask(h))
+	router.POST("/tag", auth.IsUserAuthorized(handler.AddTag, h))
+	router.GET("/tags", auth.IsUserAuthorized(handler.GetAllTags, h))
+	router.GET("/tags/:tag_id", auth.IsUserAuthorized(handler.GetTag, h))
+	router.PUT("/tags/:tag_id", auth.IsUserAuthorized(handler.UpdateTag, h))
+	router.DELETE("/tags/:tag_id", auth.IsUserAuthorized(handler.DeleteTag, h))
 
-	router.POST("/team_group", handler.AddTeamGroup(h))
-	router.GET("/team_groups", handler.GetAllTeamGroups(h))
-	router.GET("/team_groups/:team_group_id", handler.GetTeamGroup(h))
-	router.PUT("/team_groups/:team_group_id", handler.UpdateTeamGroup(h))
-	router.DELETE("/team_groups/:team_group_id", handler.DeleteTeamGroup(h))
+	router.POST("/task", auth.IsUserAuthorized(handler.AddTask, h))
+	router.GET("/tasks", auth.IsUserAuthorized(handler.GetAllTasks, h))
+	router.GET("/tasks/:task_id", auth.IsUserAuthorized(handler.GetTask, h))
+	router.PUT("/tasks/:task_id", auth.IsUserAuthorized(handler.UpdateTask, h))
+	router.DELETE("/tasks/:task_id", auth.IsUserAuthorized(handler.DeleteTask, h))
 
-	router.POST("/team_member", handler.AddTeamMember(h))
-	router.GET("/team_members", handler.GetAllTeamMembers(h))
-	router.GET("/team_members/:team_member_id", handler.GetTeamMember(h))
-	router.PUT("/team_members/:team_member_id", handler.UpdateTeamMember(h))
-	router.DELETE("/team_members/:team_member_id", handler.DeleteTeamMember(h))
+	router.POST("/team_group", auth.IsUserAuthorized(handler.AddTeamGroup, h))
+	router.GET("/team_groups", auth.IsUserAuthorized(handler.GetAllTeamGroups, h))
+	router.GET("/team_groups/:team_group_id", auth.IsUserAuthorized(handler.GetTeamGroup, h))
+	router.PUT("/team_groups/:team_group_id", auth.IsUserAuthorized(handler.UpdateTeamGroup, h))
+	router.DELETE("/team_groups/:team_group_id", auth.IsUserAuthorized(handler.DeleteTeamGroup, h))
 
-	router.POST("/team_role", handler.AddTeamRole(h))
-	router.GET("/team_roles", handler.GetAllTeamRoles(h))
-	router.GET("/team_roles/:team_role_id", handler.GetTeamRole(h))
-	router.PUT("/team_roles/:team_role_id", handler.UpdateTeamRole(h))
-	router.DELETE("/team_roles/:team_role_id", handler.DeleteTeamRole(h))
+	router.POST("/team_member", auth.IsUserAuthorized(handler.AddTeamMember, h))
+	router.GET("/team_members", auth.IsUserAuthorized(handler.GetAllTeamMembers, h))
+	router.GET("/team_members/:team_member_id", auth.IsUserAuthorized(handler.GetTeamMember, h))
+	router.PUT("/team_members/:team_member_id", auth.IsUserAuthorized(handler.UpdateTeamMember, h))
+	router.DELETE("/team_members/:team_member_id", auth.IsUserAuthorized(handler.DeleteTeamMember, h))
 
-	router.POST("/user", handler.AddUser(h))
-	router.GET("/users", handler.GetAllUsers(h))
-	router.GET("/users/:user_id", handler.GetUser(h))
-	router.PUT("/users/:user_id", handler.UpdateUser(h))
-	router.DELETE("/users/:user_id", handler.DeleteUser(h))
+	router.POST("/team_role", auth.IsUserAuthorized(handler.AddTeamRole, h))
+	router.GET("/team_roles", auth.IsUserAuthorized(handler.GetAllTeamRoles, h))
+	router.GET("/team_roles/:team_role_id", auth.IsUserAuthorized(handler.GetTeamRole, h))
+	router.PUT("/team_roles/:team_role_id", auth.IsUserAuthorized(handler.UpdateTeamRole, h))
+	router.DELETE("/team_roles/:team_role_id", auth.IsUserAuthorized(handler.DeleteTeamRole, h))
 
-	router.POST("/workspace", handler.AddWorkspace(h))
-	router.GET("/workspaces", handler.GetAllWorkspaces(h))
-	router.GET("/workspaces/:workspace_id", handler.GetWorkspace(h))
-	router.PUT("/workspaces/:workspace_id", handler.UpdateWorkspace(h))
-	router.DELETE("/workspaces/:workspace_id", handler.DeleteWorkspace(h))
+	router.GET("/users", auth.IsUserAuthorized(handler.GetAllUsers, h))
+	router.GET("/users/:user_id", auth.IsUserAuthorized(handler.GetUser, h))
+	router.PUT("/users/:user_id", auth.IsUserAuthorized(handler.UpdateUser, h))
+	router.DELETE("/users/:user_id", auth.IsUserAuthorized(handler.DeleteUser, h))
+
+	router.POST("/workspace", auth.IsUserAuthorized(handler.AddWorkspace, h))
+	router.GET("/workspaces", auth.IsUserAuthorized(handler.GetAllWorkspaces, h))
+	router.GET("/workspaces/:workspace_id", auth.IsUserAuthorized(handler.GetWorkspace, h))
+	router.PUT("/workspaces/:workspace_id", auth.IsUserAuthorized(handler.UpdateWorkspace, h))
+	router.DELETE("/workspaces/:workspace_id", auth.IsUserAuthorized(handler.DeleteWorkspace, h))
 
 	return router
 }
