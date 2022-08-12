@@ -14,7 +14,7 @@ import (
 func (db *dbClient) AddTeamGroup(teamGroup *models.TeamGroup) (*models.TeamGroup, int, error) {
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, errors.New("unable to generate id")
 	}
 	teamGroup.ID = fmt.Sprintf("tg_%v", id)
 
@@ -37,7 +37,7 @@ func (db *dbClient) AddTeamGroup(teamGroup *models.TeamGroup) (*models.TeamGroup
 }
 
 func (db *dbClient) AddTeamGroupTeamMembers(teamGroupID string, teamMembers []string) error {
-	if teamMembers == nil {
+	if teamMembers == nil || teamMembers[0] == "" {
 		return nil
 	}
 
@@ -77,7 +77,7 @@ func (db *dbClient) GetTeamMemberForTeamGroup(teamGroupID, teamMemberID string) 
 		}
 	}
 
-	return "", fmt.Errorf("GetTeamMemberForTeamGroup: %v", errors.New("TeamMember with given ID not found!"))
+	return "", fmt.Errorf("GetTeamMemberForTeamGroup: %v", errors.New("team member with given id not found"))
 }
 
 func (db *dbClient) GetAllTeamGroups() ([]*models.TeamGroup, error) {
@@ -101,7 +101,7 @@ func (db *dbClient) GetTeamGroup(teamGroupID string) (*models.TeamGroup, error) 
 
 	var teamGroup *models.TeamGroup
 	if teamGroups == nil || len(teamGroups) <= 0 {
-		return nil, fmt.Errorf("GetTeamGroup: %v", errors.New("Team Group with given ID not found!"))
+		return nil, fmt.Errorf("GetTeamGroup: %v", errors.New("team group with given id not found"))
 	} else {
 		teamGroup = teamGroups[0]
 	}
@@ -184,10 +184,11 @@ func (db *dbClient) GetTeamGroupTeamMembers(teamGroupID string) ([]string, error
 func (db *dbClient) UpdateTeamGroup(teamGroupID string, updates map[string]interface{}) (*models.TeamGroup, error) {
 	if v, ok := updates["team_members"]; ok {
 		teamMembers := strings.Split(v.(string), ",")
-
-		err := db.UpdateTeamGroupTeamMembers(teamGroupID, teamMembers)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateTeamGroup: %v", err)
+		if len(teamMembers) > 0 && teamMembers[0] != "" {
+			err := db.UpdateTeamGroupTeamMembers(teamGroupID, teamMembers)
+			if err != nil {
+				return nil, fmt.Errorf("UpdateTeamGroup: %v", err)
+			}
 		}
 		delete(updates, "team_members")
 	}

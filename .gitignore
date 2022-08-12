@@ -18,3 +18,7 @@
 testing_main.go
 
 queries.txt
+
+pg_data/
+
+pg_data_test/

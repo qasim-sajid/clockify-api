@@ -13,7 +13,7 @@ import (
 func (db *dbClient) AddWorkspace(workspace *models.Workspace) (*models.Workspace, int, error) {
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, errors.New("unable to generate id")
 	}
 	workspace.ID = fmt.Sprintf("w_%v", id)
 
@@ -51,7 +51,7 @@ func (db *dbClient) GetWorkspace(workspaceID string) (*models.Workspace, error) 
 
 	var workspace *models.Workspace
 	if workspaces == nil || len(workspaces) <= 0 {
-		return nil, fmt.Errorf("GetWorkspace: %v", errors.New("Workspace with given ID not found!"))
+		return nil, fmt.Errorf("GetWorkspace: workspace with given id not found")
 	} else {
 		workspace = workspaces[0]
 	}

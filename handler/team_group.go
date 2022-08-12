@@ -29,6 +29,7 @@ func GetAllTeamGroups(c *gin.Context, h *Handler, origin *models.User) {
 	teamGroups, err := h.DB.GetAllTeamGroups()
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, teamGroups)
@@ -50,6 +51,7 @@ func UpdateTeamGroup(c *gin.Context, h *Handler, origin *models.User) {
 	for k, v := range c.Request.URL.Query() {
 		if len(v) > 1 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Duplicate parameter found!"})
+			return
 		} else {
 			updates[k] = v[0]
 		}

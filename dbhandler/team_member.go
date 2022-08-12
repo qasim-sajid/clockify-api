@@ -19,7 +19,7 @@ func (db *dbClient) AddTeamMember(teamMember *models.TeamMember) (*models.TeamMe
 
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, fmt.Errorf("AddTeamMember: %v", errors.New("Unable to generate _ID"))
+		return nil, http.StatusInternalServerError, fmt.Errorf("AddTeamMember: %v", errors.New("unable to generate id"))
 	}
 	teamMember.ID = fmt.Sprintf("tm_%v", id)
 
@@ -40,8 +40,8 @@ func (db *dbClient) checkForDuplicateTeamMember(teamMember *models.TeamMember) e
 	searchParams := make(map[string]interface{})
 	searchParams["user_email"] = teamMember.User
 	teamMembers, _ := db.GetTeamMembersWithFilters(searchParams)
-	if teamMembers != nil && len(teamMembers) > 0 {
-		return errors.New("TeamMember with this user email already exists!")
+	if len(teamMembers) > 0 {
+		return errors.New("team member with this user email already exists")
 	}
 
 	return nil
@@ -57,7 +57,7 @@ func (db *dbClient) GetAllTeamMembers() ([]*models.TeamMember, error) {
 }
 
 func (db *dbClient) AddTeamMemberTeamGroups(teamMemberID string, teamGroups []string) error {
-	if teamGroups == nil {
+	if teamGroups == nil || teamGroups[0] == "" {
 		return nil
 	}
 
@@ -97,7 +97,7 @@ func (db *dbClient) GetTeamGroupForTeamMember(teamMemberID, teamGroupID string) 
 		}
 	}
 
-	return "", fmt.Errorf("GetTeamGroupForTeamMember: %v", errors.New("TeamGroup with given ID not found!"))
+	return "", fmt.Errorf("GetTeamGroupForTeamMember: %v", errors.New("team group with given id not found"))
 }
 
 func (db *dbClient) GetTeamMember(teamMemberID string) (*models.TeamMember, error) {
@@ -112,7 +112,7 @@ func (db *dbClient) GetTeamMember(teamMemberID string) (*models.TeamMember, erro
 
 	var teamMember *models.TeamMember
 	if teamMembers == nil || len(teamMembers) <= 0 {
-		return nil, fmt.Errorf("GetTeamMember: %v", errors.New("TeamMember with given ID not found!"))
+		return nil, fmt.Errorf("GetTeamMember: %v", errors.New("team member with given id not found"))
 	} else {
 		teamMember = teamMembers[0]
 	}
@@ -205,10 +205,11 @@ func (db *dbClient) GetTeamMemberTeamGroups(teamMemberID string) ([]string, erro
 func (db *dbClient) UpdateTeamMember(teamMemberID string, updates map[string]interface{}) (*models.TeamMember, error) {
 	if v, ok := updates["team_groups"]; ok {
 		teamGroups := strings.Split(v.(string), ",")
-
-		err := db.UpdateTeamMemberTeamGroups(teamMemberID, teamGroups)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateTeamMember: %v", err)
+		if len(teamGroups) > 0 && teamGroups[0] != "" {
+			err := db.UpdateTeamMemberTeamGroups(teamMemberID, teamGroups)
+			if err != nil {
+				return nil, fmt.Errorf("UpdateTeamMember: %v", err)
+			}
 		}
 		delete(updates, "team_groups")
 	}

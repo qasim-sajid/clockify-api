@@ -6,6 +6,9 @@ import (
 
 // DbHandler specifies DB context
 type DbHandler interface {
+	SetupDB()
+	CloseDB()
+
 	AddClient(*models.Client) (*models.Client, int, error)
 	GetAllClients() ([]*models.Client, error)
 	GetClientsWithFilters(searchParams map[string]interface{}) ([]*models.Client, error)

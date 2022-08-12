@@ -21,31 +21,39 @@ func AddTask(c *gin.Context, h *Handler, origin *models.User) {
 	task.Billable, err = strconv.ParseBool(c.Query("billable"))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	task.StartTime, err = time.Parse(conf.TIME_LAYOUT, c.Query("start_time"))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	task.EndTime, err = time.Parse(conf.TIME_LAYOUT, c.Query("end_time"))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	task.Date, err = time.Parse(conf.TIME_LAYOUT, c.Query("date"))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	task.IsActive, err = strconv.ParseBool(c.Query("is_active"))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	task.Project = c.Query("project_id")
 
-	task.Tags = strings.Split(c.Query("tags"), ",")
+	tags := strings.Split(c.Query("tags"), ",")
+	if len(tags) > 0 && tags[0] != "" {
+		task.Tags = tags
+	}
 
 	task, _, err = h.DB.AddTask(task)
 	if err != nil {
@@ -59,6 +67,7 @@ func GetAllTasks(c *gin.Context, h *Handler, origin *models.User) {
 	tasks, err := h.DB.GetAllTasks()
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, tasks)
@@ -80,6 +89,7 @@ func UpdateTask(c *gin.Context, h *Handler, origin *models.User) {
 	for k, v := range c.Request.URL.Query() {
 		if len(v) > 1 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Duplicate parameter found!"})
+			return
 		} else {
 			updates[k] = v[0]
 		}

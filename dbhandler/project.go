@@ -14,7 +14,7 @@ import (
 func (db *dbClient) AddProject(project *models.Project) (*models.Project, int, error) {
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, errors.New("unable to generate _id")
 	}
 	project.ID = fmt.Sprintf("p_%v", id)
 
@@ -42,7 +42,7 @@ func (db *dbClient) AddProject(project *models.Project) (*models.Project, int, e
 }
 
 func (db *dbClient) AddProjectTeamMembers(projectID string, teamMembers []string) error {
-	if teamMembers == nil {
+	if teamMembers == nil || teamMembers[0] == "" {
 		return nil
 	}
 
@@ -77,11 +77,11 @@ func (db *dbClient) GetTeamMemberForProject(projectID, teamMemberID string) (str
 		}
 	}
 
-	return "", fmt.Errorf("GetTeamMemberForProject: %v", errors.New("TeamMember with given ID not found!"))
+	return "", fmt.Errorf("GetTeamMemberForProject: %v", errors.New("team member with given _id not found"))
 }
 
 func (db *dbClient) AddProjectTeamGroups(projectID string, teamGroups []string) error {
-	if teamGroups == nil {
+	if teamGroups == nil || teamGroups[0] == "" {
 		return nil
 	}
 
@@ -116,7 +116,7 @@ func (db *dbClient) GetTeamGroupForProject(projectID, teamGroupID string) (strin
 		}
 	}
 
-	return "", fmt.Errorf("GetTeamGroupForProject: %v", errors.New("TeamGroup with given ID not found!"))
+	return "", fmt.Errorf("GetTeamGroupForProject: %v", errors.New("team group with given id not found"))
 }
 
 func (db *dbClient) GetAllProjects() ([]*models.Project, error) {
@@ -140,7 +140,7 @@ func (db *dbClient) GetProject(projectID string) (*models.Project, error) {
 
 	var project *models.Project
 	if projects == nil || len(projects) <= 0 {
-		return nil, fmt.Errorf("GetProject: %v", errors.New("Project with given ID not found!"))
+		return nil, fmt.Errorf("GetProject: %v", errors.New("project with given if not found"))
 	} else {
 		project = projects[0]
 	}
@@ -258,20 +258,22 @@ func (db *dbClient) GetProjectTeamGroups(projectID string) ([]string, error) {
 func (db *dbClient) UpdateProject(projectID string, updates map[string]interface{}) (*models.Project, error) {
 	if v, ok := updates["team_members"]; ok {
 		teamMembers := strings.Split(v.(string), ",")
-
-		err := db.UpdateProjectTeamMembers(projectID, teamMembers)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateProject: %v", err)
+		if len(teamMembers) > 0 && teamMembers[0] != "" {
+			err := db.UpdateProjectTeamMembers(projectID, teamMembers)
+			if err != nil {
+				return nil, fmt.Errorf("UpdateProject: %v", err)
+			}
 		}
 		delete(updates, "team_members")
 	}
 
 	if v, ok := updates["team_groups"]; ok {
 		teamGroups := strings.Split(v.(string), ",")
-
-		err := db.UpdateProjectTeamGroups(projectID, teamGroups)
-		if err != nil {
-			return nil, fmt.Errorf("UpdateProject: %v", err)
+		if len(teamGroups) > 0 && teamGroups[0] != "" {
+			err := db.UpdateProjectTeamGroups(projectID, teamGroups)
+			if err != nil {
+				return nil, fmt.Errorf("UpdateProject: %v", err)
+			}
 		}
 		delete(updates, "team_groups")
 	}

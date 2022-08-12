@@ -13,7 +13,7 @@ import (
 func (db *dbClient) AddClient(client *models.Client) (*models.Client, int, error) {
 	id := uuid.New().String()
 	if id == "" {
-		return nil, http.StatusInternalServerError, errors.New("Unable to generate _ID")
+		return nil, http.StatusInternalServerError, errors.New("unable to generate _id")
 	}
 	client.ID = fmt.Sprintf("c_%v", id)
 
@@ -51,7 +51,7 @@ func (db *dbClient) GetClient(clientID string) (*models.Client, error) {
 
 	var client *models.Client
 	if clients == nil || len(clients) <= 0 {
-		return nil, fmt.Errorf("GetClient: %v", errors.New("Client with given ID not found!"))
+		return nil, fmt.Errorf("GetClient: %v", errors.New("client with given id not found"))
 	} else {
 		client = clients[0]
 	}
