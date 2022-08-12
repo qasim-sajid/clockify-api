@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,7 +37,7 @@ func (db *dbClient) AddTask(task *models.Task) (*models.Task, int, error) {
 	return task, http.StatusOK, nil
 }
 
-func (db *dbClient) AddTaskTags(taskID string, tags []*models.Tag) error {
+func (db *dbClient) AddTaskTags(taskID string, tags []string) error {
 	if tags == nil {
 		return nil
 	}
@@ -45,10 +45,10 @@ func (db *dbClient) AddTaskTags(taskID string, tags []*models.Tag) error {
 	for _, t := range tags {
 		valuesMap := make(map[string]interface{})
 		valuesMap["task_id"] = taskID
-		valuesMap["tag_id"] = t.ID
+		valuesMap["tag_id"] = t
 
 		//Check if value already exists
-		_, err := db.GetTagForTask(taskID, t.ID)
+		_, err := db.GetTagForTask(taskID, t)
 		if err != nil {
 			//If value doesn't exist then insert it
 			insertQuery, err := db.GetInsertQueryForCompositeTable(TASK_TAG, valuesMap)
@@ -66,19 +66,19 @@ func (db *dbClient) AddTaskTags(taskID string, tags []*models.Tag) error {
 	return nil
 }
 
-func (db *dbClient) GetTagForTask(taskID, tagID string) (*models.Tag, error) {
+func (db *dbClient) GetTagForTask(taskID, tagID string) (string, error) {
 	tags, err := db.GetTaskTags(taskID)
 	if err != nil {
-		return nil, fmt.Errorf("GetTagForTask: %v", err)
+		return "", fmt.Errorf("GetTagForTask: %v", err)
 	}
 
 	for _, t := range tags {
-		if t.ID == tagID {
+		if t == tagID {
 			return t, nil
 		}
 	}
 
-	return nil, fmt.Errorf("GetTagForTask: %v", errors.New("Tag with given ID not found!"))
+	return "", fmt.Errorf("GetTagForTask: %v", errors.New("Tag with given ID not found!"))
 }
 
 func (db *dbClient) GetAllTasks() ([]*models.Task, error) {
@@ -92,14 +92,8 @@ func (db *dbClient) GetAllTasks() ([]*models.Task, error) {
 
 func (db *dbClient) GetTask(taskID string) (*models.Task, error) {
 	selectParams := make(map[string]interface{})
-	t := models.Task{}
-	v := reflect.ValueOf(t)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return nil, fmt.Errorf("GetTask: %v", err)
-	}
-	selectParams[columnName] = taskID
+	selectParams["_id"] = taskID
 
 	tasks, err := db.GetTasksWithFilters(selectParams)
 	if err != nil {
@@ -153,29 +147,22 @@ func (db *dbClient) GetTasksFromRows(rows *sql.Rows) ([]*models.Task, error) {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}
 
-		timeLayout := time.RFC850
-
-		t.StartTime, err = time.Parse(timeLayout, startTime)
+		t.StartTime, err = time.Parse(time.RFC850, startTime)
 		if err != nil {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}
 
-		t.EndTime, err = time.Parse(timeLayout, endTime)
+		t.EndTime, err = time.Parse(time.RFC850, endTime)
 		if err != nil {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}
 
-		t.Date, err = time.Parse(timeLayout, date)
+		t.Date, err = time.Parse(time.RFC850, date)
 		if err != nil {
 			return nil, fmt.Errorf("GetTasksFromRows: %v", err)
 		}
 
-		if projectID.Valid {
-			t.Project, err = db.GetProject(projectID.String)
-			if err != nil {
-				return nil, fmt.Errorf("GetTasksFromRows: %v", err)
-			}
-		}
+		t.Project = projectID.String
 
 		t.Tags, err = db.GetTaskTags(t.ID)
 		if err != nil {
@@ -188,7 +175,7 @@ func (db *dbClient) GetTasksFromRows(rows *sql.Rows) ([]*models.Task, error) {
 	return tasks, nil
 }
 
-func (db *dbClient) GetTaskTags(taskID string) ([]*models.Tag, error) {
+func (db *dbClient) GetTaskTags(taskID string) ([]string, error) {
 	searchParams := make(map[string]interface{})
 	searchParams["task_id"] = taskID
 
@@ -202,7 +189,7 @@ func (db *dbClient) GetTaskTags(taskID string) ([]*models.Tag, error) {
 		return nil, fmt.Errorf("GetTaskTags: %v", err)
 	}
 
-	tags := make([]*models.Tag, 0)
+	tags := make([]string, 0)
 	for rows.Next() {
 		tagID := ""
 
@@ -211,25 +198,21 @@ func (db *dbClient) GetTaskTags(taskID string) ([]*models.Tag, error) {
 			return nil, fmt.Errorf("GetTaskTags: %v", err)
 		}
 
-		t, err := db.GetTag(tagID)
-		if err != nil {
-			return nil, fmt.Errorf("GetTaskTags: %v", err)
-		}
-
-		tags = append(tags, t)
+		tags = append(tags, tagID)
 	}
 
 	return tags, nil
 }
 
 func (db *dbClient) UpdateTask(taskID string, updates map[string]interface{}) (*models.Task, error) {
-	if v, ok := updates["task_tags"]; ok {
-		tags := v.([]*models.Tag)
-		err := db.UpdateTaskTags(taskID, tags)
+	if v, ok := updates["tags"]; ok {
+		tagIDs := strings.Split(v.(string), ",")
+
+		err := db.UpdateTaskTags(taskID, tagIDs)
 		if err != nil {
 			return nil, fmt.Errorf("UpdateTask: %v", err)
 		}
-		delete(updates, "task_tags")
+		delete(updates, "tags")
 	}
 
 	updateQuery, err := db.GetUpdateQueryForStruct(models.Task{}, taskID, updates)
@@ -252,8 +235,9 @@ func (db *dbClient) UpdateTask(taskID string, updates map[string]interface{}) (*
 	return task, nil
 }
 
-func (db *dbClient) UpdateTaskTags(taskID string, tags []*models.Tag) error {
+func (db *dbClient) UpdateTaskTags(taskID string, tags []string) error {
 	deleteParams := make(map[string]interface{})
+	deleteParams["task_id"] = taskID
 	_, err := db.DeleteValuesFromCompositeTable(TASK_TAG, deleteParams)
 	if err != nil {
 		return fmt.Errorf("UpdateTaskTags: %v", err)
@@ -269,17 +253,10 @@ func (db *dbClient) UpdateTaskTags(taskID string, tags []*models.Tag) error {
 
 func (db *dbClient) DeleteTask(taskID string) error {
 	deleteParams := make(map[string]interface{})
-	c := models.Task{}
-	v := reflect.ValueOf(c)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return fmt.Errorf("DeleteTask: %v", err)
-	}
+	deleteParams["_id"] = taskID
 
-	deleteParams[columnName] = taskID
-
-	deleteQuery, err := db.GetDeleteQueryForStruct(c, deleteParams)
+	deleteQuery, err := db.GetDeleteQueryForStruct(models.Task{}, deleteParams)
 	if err != nil {
 		return fmt.Errorf("DeleteTask: %v", err)
 	}

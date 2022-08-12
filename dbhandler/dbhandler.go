@@ -42,7 +42,7 @@ type DbHandler interface {
 	DeleteTeamGroup(teamGroupID string) error
 
 	AddTeamMember(*models.TeamMember) (*models.TeamMember, int, error)
-	AddTeamMemberTeamGroups(string, []*models.TeamGroup) error
+	AddTeamMemberTeamGroups(string, []string) error
 	GetAllTeamMembers() ([]*models.TeamMember, error)
 	GetTeamMembersWithFilters(searchParams map[string]interface{}) ([]*models.TeamMember, error)
 	GetTeamMember(teamMemberID string) (*models.TeamMember, error)
@@ -60,6 +60,7 @@ type DbHandler interface {
 	GetAllUsers() ([]*models.User, error)
 	GetUsersWithFilters(searchParams map[string]interface{}) ([]*models.User, error)
 	GetUser(userID string) (*models.User, error)
+	GetUserWithEmail(userID string) (*models.User, error)
 	UpdateUser(userID string, updates map[string]interface{}) (*models.User, error)
 	DeleteUser(userID string) error
 

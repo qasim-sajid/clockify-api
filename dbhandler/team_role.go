@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
@@ -42,14 +41,8 @@ func (db *dbClient) GetAllTeamRoles() ([]*models.TeamRole, error) {
 
 func (db *dbClient) GetTeamRole(teamRoleID string) (*models.TeamRole, error) {
 	selectParams := make(map[string]interface{})
-	tr := models.TeamRole{}
-	v := reflect.ValueOf(tr)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return nil, fmt.Errorf("GetTeamRole: %v", err)
-	}
-	selectParams[columnName] = teamRoleID
+	selectParams["_id"] = teamRoleID
 
 	teamRoles, err := db.GetTeamRolesWithFilters(selectParams)
 	if err != nil {
@@ -127,17 +120,10 @@ func (db *dbClient) UpdateTeamRole(teamRoleID string, updates map[string]interfa
 
 func (db *dbClient) DeleteTeamRole(teamRoleID string) error {
 	deleteParams := make(map[string]interface{})
-	c := models.TeamRole{}
-	v := reflect.ValueOf(c)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return fmt.Errorf("DeleteTeamRole: %v", err)
-	}
+	deleteParams["_id"] = teamRoleID
 
-	deleteParams[columnName] = teamRoleID
-
-	deleteQuery, err := db.GetDeleteQueryForStruct(c, deleteParams)
+	deleteQuery, err := db.GetDeleteQueryForStruct(models.TeamRole{}, deleteParams)
 	if err != nil {
 		return fmt.Errorf("DeleteTeamRole: %v", err)
 	}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
@@ -42,14 +41,8 @@ func (db *dbClient) GetAllTags() ([]*models.Tag, error) {
 
 func (db *dbClient) GetTag(tagID string) (*models.Tag, error) {
 	selectParams := make(map[string]interface{})
-	p := models.Tag{}
-	v := reflect.ValueOf(p)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return nil, fmt.Errorf("GetTag: %v", err)
-	}
-	selectParams[columnName] = tagID
+	selectParams["_id"] = tagID
 
 	tags, err := db.GetTagsWithFilters(selectParams)
 	if err != nil {
@@ -127,17 +120,10 @@ func (db *dbClient) UpdateTag(tagID string, updates map[string]interface{}) (*mo
 
 func (db *dbClient) DeleteTag(tagID string) error {
 	deleteParams := make(map[string]interface{})
-	c := models.Tag{}
-	v := reflect.ValueOf(c)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return fmt.Errorf("DeleteTag: %v", err)
-	}
+	deleteParams["_id"] = tagID
 
-	deleteParams[columnName] = tagID
-
-	deleteQuery, err := db.GetDeleteQueryForStruct(c, deleteParams)
+	deleteQuery, err := db.GetDeleteQueryForStruct(models.Tag{}, deleteParams)
 	if err != nil {
 		return fmt.Errorf("DeleteTag: %v", err)
 	}

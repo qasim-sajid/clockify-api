@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
@@ -42,14 +41,8 @@ func (db *dbClient) GetAllWorkspaces() ([]*models.Workspace, error) {
 
 func (db *dbClient) GetWorkspace(workspaceID string) (*models.Workspace, error) {
 	selectParams := make(map[string]interface{})
-	w := models.Workspace{}
-	v := reflect.ValueOf(w)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return nil, fmt.Errorf("GetWorkspace: %v", err)
-	}
-	selectParams[columnName] = workspaceID
+	selectParams["_id"] = workspaceID
 
 	workspaces, err := db.GetWorkspacesWithFilters(selectParams)
 	if err != nil {
@@ -127,17 +120,9 @@ func (db *dbClient) UpdateWorkspace(workspaceID string, updates map[string]inter
 
 func (db *dbClient) DeleteWorkspace(workspaceID string) error {
 	deleteParams := make(map[string]interface{})
-	c := models.Workspace{}
-	v := reflect.ValueOf(c)
+	deleteParams["_id"] = workspaceID
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return fmt.Errorf("DeleteWorkspace: %v", err)
-	}
-
-	deleteParams[columnName] = workspaceID
-
-	deleteQuery, err := db.GetDeleteQueryForStruct(c, deleteParams)
+	deleteQuery, err := db.GetDeleteQueryForStruct(models.Workspace{}, deleteParams)
 	if err != nil {
 		return fmt.Errorf("DeleteWorkspace: %v", err)
 	}

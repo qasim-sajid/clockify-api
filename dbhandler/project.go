@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
@@ -41,7 +41,7 @@ func (db *dbClient) AddProject(project *models.Project) (*models.Project, int, e
 	return project, http.StatusOK, nil
 }
 
-func (db *dbClient) AddProjectTeamMembers(projectID string, teamMembers []*models.TeamMember) error {
+func (db *dbClient) AddProjectTeamMembers(projectID string, teamMembers []string) error {
 	if teamMembers == nil {
 		return nil
 	}
@@ -49,10 +49,10 @@ func (db *dbClient) AddProjectTeamMembers(projectID string, teamMembers []*model
 	for _, tm := range teamMembers {
 		valuesMap := make(map[string]interface{})
 		valuesMap["project_id"] = projectID
-		valuesMap["team_member_id"] = tm.ID
+		valuesMap["team_member_id"] = tm
 
 		//Check if value already exists
-		_, err := db.GetTeamMemberForProject(projectID, tm.ID)
+		_, err := db.GetTeamMemberForProject(projectID, tm)
 		if err != nil {
 			//If value doesn't exist then insert it
 			_, err := db.AddValueInCompositeTable(PROJECT_TEAM_MEMBER, valuesMap)
@@ -65,22 +65,22 @@ func (db *dbClient) AddProjectTeamMembers(projectID string, teamMembers []*model
 	return nil
 }
 
-func (db *dbClient) GetTeamMemberForProject(projectID, teamMemberID string) (*models.TeamMember, error) {
+func (db *dbClient) GetTeamMemberForProject(projectID, teamMemberID string) (string, error) {
 	teamMembers, err := db.GetProjectTeamMembers(projectID)
 	if err != nil {
-		return nil, fmt.Errorf("GetTeamMemberForProject: %v", err)
+		return "", fmt.Errorf("GetTeamMemberForProject: %v", err)
 	}
 
 	for _, tm := range teamMembers {
-		if tm.ID == teamMemberID {
+		if tm == teamMemberID {
 			return tm, nil
 		}
 	}
 
-	return nil, fmt.Errorf("GetTeamMemberForProject: %v", errors.New("TeamMember with given ID not found!"))
+	return "", fmt.Errorf("GetTeamMemberForProject: %v", errors.New("TeamMember with given ID not found!"))
 }
 
-func (db *dbClient) AddProjectTeamGroups(projectID string, teamGroups []*models.TeamGroup) error {
+func (db *dbClient) AddProjectTeamGroups(projectID string, teamGroups []string) error {
 	if teamGroups == nil {
 		return nil
 	}
@@ -88,10 +88,10 @@ func (db *dbClient) AddProjectTeamGroups(projectID string, teamGroups []*models.
 	for _, tg := range teamGroups {
 		valuesMap := make(map[string]interface{})
 		valuesMap["project_id"] = projectID
-		valuesMap["team_group_id"] = tg.ID
+		valuesMap["team_group_id"] = tg
 
 		//Check if value already exists
-		_, err := db.GetTeamGroupForProject(projectID, tg.ID)
+		_, err := db.GetTeamGroupForProject(projectID, tg)
 		if err != nil {
 			//If value doesn't exist then insert it
 			_, err := db.AddValueInCompositeTable(PROJECT_TEAM_GROUP, valuesMap)
@@ -104,19 +104,19 @@ func (db *dbClient) AddProjectTeamGroups(projectID string, teamGroups []*models.
 	return nil
 }
 
-func (db *dbClient) GetTeamGroupForProject(projectID, teamGroupID string) (*models.TeamGroup, error) {
+func (db *dbClient) GetTeamGroupForProject(projectID, teamGroupID string) (string, error) {
 	teamGroups, err := db.GetProjectTeamGroups(projectID)
 	if err != nil {
-		return nil, fmt.Errorf("GetTeamGroupForProject: %v", err)
+		return "", fmt.Errorf("GetTeamGroupForProject: %v", err)
 	}
 
 	for _, tg := range teamGroups {
-		if tg.ID == teamGroupID {
+		if tg == teamGroupID {
 			return tg, nil
 		}
 	}
 
-	return nil, fmt.Errorf("GetTeamGroupForProject: %v", errors.New("TeamGroup with given ID not found!"))
+	return "", fmt.Errorf("GetTeamGroupForProject: %v", errors.New("TeamGroup with given ID not found!"))
 }
 
 func (db *dbClient) GetAllProjects() ([]*models.Project, error) {
@@ -130,14 +130,8 @@ func (db *dbClient) GetAllProjects() ([]*models.Project, error) {
 
 func (db *dbClient) GetProject(projectID string) (*models.Project, error) {
 	selectParams := make(map[string]interface{})
-	p := models.Project{}
-	v := reflect.ValueOf(p)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return nil, fmt.Errorf("GetProject: %v", err)
-	}
-	selectParams[columnName] = projectID
+	selectParams["_id"] = projectID
 
 	projects, err := db.GetProjectsWithFilters(selectParams)
 	if err != nil {
@@ -190,17 +184,11 @@ func (db *dbClient) GetProjectsFromRows(rows *sql.Rows) ([]*models.Project, erro
 		}
 
 		if clientID.Valid {
-			p.Client, err = db.GetClient(clientID.String)
-			if err != nil {
-				return nil, fmt.Errorf("GetProjectsFromRows: %v", err)
-			}
+			p.Client = clientID.String
 		}
 
 		if workspaceID.Valid {
-			p.Workspace, err = db.GetWorkspace(workspaceID.String)
-			if err != nil {
-				return nil, fmt.Errorf("GetProjectsFromRows: %v", err)
-			}
+			p.Workspace = workspaceID.String
 		}
 
 		p.TeamMembers, err = db.GetProjectTeamMembers(p.ID)
@@ -219,7 +207,7 @@ func (db *dbClient) GetProjectsFromRows(rows *sql.Rows) ([]*models.Project, erro
 	return projects, nil
 }
 
-func (db *dbClient) GetProjectTeamMembers(projectID string) ([]*models.TeamMember, error) {
+func (db *dbClient) GetProjectTeamMembers(projectID string) ([]string, error) {
 	searchParams := make(map[string]interface{})
 	searchParams["project_id"] = projectID
 
@@ -228,7 +216,7 @@ func (db *dbClient) GetProjectTeamMembers(projectID string) ([]*models.TeamMembe
 		return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
 	}
 
-	teamMembers := make([]*models.TeamMember, 0)
+	teamMembers := make([]string, 0)
 	for rows.Next() {
 		teamMemberID := ""
 
@@ -237,18 +225,13 @@ func (db *dbClient) GetProjectTeamMembers(projectID string) ([]*models.TeamMembe
 			return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
 		}
 
-		tm, err := db.GetTeamMember(teamMemberID)
-		if err != nil {
-			return nil, fmt.Errorf("GetProjectTeamMembers: %v", err)
-		}
-
-		teamMembers = append(teamMembers, tm)
+		teamMembers = append(teamMembers, teamMemberID)
 	}
 
 	return teamMembers, nil
 }
 
-func (db *dbClient) GetProjectTeamGroups(projectID string) ([]*models.TeamGroup, error) {
+func (db *dbClient) GetProjectTeamGroups(projectID string) ([]string, error) {
 	searchParams := make(map[string]interface{})
 	searchParams["project_id"] = projectID
 
@@ -257,7 +240,7 @@ func (db *dbClient) GetProjectTeamGroups(projectID string) ([]*models.TeamGroup,
 		return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
 	}
 
-	teamGroups := make([]*models.TeamGroup, 0)
+	teamGroups := make([]string, 0)
 	for rows.Next() {
 		teamGroupID := ""
 
@@ -266,34 +249,31 @@ func (db *dbClient) GetProjectTeamGroups(projectID string) ([]*models.TeamGroup,
 			return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
 		}
 
-		tg, err := db.GetTeamGroup(teamGroupID)
-		if err != nil {
-			return nil, fmt.Errorf("GetProjectTeamGroups: %v", err)
-		}
-
-		teamGroups = append(teamGroups, tg)
+		teamGroups = append(teamGroups, teamGroupID)
 	}
 
 	return teamGroups, nil
 }
 
 func (db *dbClient) UpdateProject(projectID string, updates map[string]interface{}) (*models.Project, error) {
-	if v, ok := updates["project_team_members"]; ok {
-		teamMembers := v.([]*models.TeamMember)
+	if v, ok := updates["team_members"]; ok {
+		teamMembers := strings.Split(v.(string), ",")
+
 		err := db.UpdateProjectTeamMembers(projectID, teamMembers)
 		if err != nil {
 			return nil, fmt.Errorf("UpdateProject: %v", err)
 		}
-		delete(updates, "project_team_members")
+		delete(updates, "team_members")
 	}
 
-	if v, ok := updates["project_team_groups"]; ok {
-		teamGroups := v.([]*models.TeamGroup)
+	if v, ok := updates["team_groups"]; ok {
+		teamGroups := strings.Split(v.(string), ",")
+
 		err := db.UpdateProjectTeamGroups(projectID, teamGroups)
 		if err != nil {
 			return nil, fmt.Errorf("UpdateProject: %v", err)
 		}
-		delete(updates, "project_team_groups")
+		delete(updates, "team_groups")
 	}
 
 	updateQuery, err := db.GetUpdateQueryForStruct(models.Project{}, projectID, updates)
@@ -316,8 +296,9 @@ func (db *dbClient) UpdateProject(projectID string, updates map[string]interface
 	return project, nil
 }
 
-func (db *dbClient) UpdateProjectTeamMembers(projectID string, teamMembers []*models.TeamMember) error {
+func (db *dbClient) UpdateProjectTeamMembers(projectID string, teamMembers []string) error {
 	deleteParams := make(map[string]interface{})
+	deleteParams["team_member_id"] = projectID
 	_, err := db.DeleteValuesFromCompositeTable(PROJECT_TEAM_MEMBER, deleteParams)
 	if err != nil {
 		return fmt.Errorf("UpdateProjectTeamMembers: %v", err)
@@ -331,8 +312,9 @@ func (db *dbClient) UpdateProjectTeamMembers(projectID string, teamMembers []*mo
 	return nil
 }
 
-func (db *dbClient) UpdateProjectTeamGroups(projectID string, teamGroups []*models.TeamGroup) error {
+func (db *dbClient) UpdateProjectTeamGroups(projectID string, teamGroups []string) error {
 	deleteParams := make(map[string]interface{})
+	deleteParams["team_group_id"] = projectID
 	_, err := db.DeleteValuesFromCompositeTable(PROJECT_TEAM_GROUP, deleteParams)
 	if err != nil {
 		return fmt.Errorf("UpdateProjectTeamGroups: %v", err)
@@ -348,17 +330,10 @@ func (db *dbClient) UpdateProjectTeamGroups(projectID string, teamGroups []*mode
 
 func (db *dbClient) DeleteProject(projectID string) error {
 	deleteParams := make(map[string]interface{})
-	c := models.Project{}
-	v := reflect.ValueOf(c)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return fmt.Errorf("DeleteProject: %v", err)
-	}
+	deleteParams["_id"] = projectID
 
-	deleteParams[columnName] = projectID
-
-	deleteQuery, err := db.GetDeleteQueryForStruct(c, deleteParams)
+	deleteQuery, err := db.GetDeleteQueryForStruct(models.Project{}, deleteParams)
 	if err != nil {
 		return fmt.Errorf("DeleteProject: %v", err)
 	}

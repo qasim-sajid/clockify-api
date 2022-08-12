@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/qasim-sajid/clockify-api/models"
@@ -42,14 +41,8 @@ func (db *dbClient) GetAllClients() ([]*models.Client, error) {
 
 func (db *dbClient) GetClient(clientID string) (*models.Client, error) {
 	selectParams := make(map[string]interface{})
-	p := models.Client{}
-	v := reflect.ValueOf(p)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return nil, fmt.Errorf("GetClient: %v", err)
-	}
-	selectParams[columnName] = clientID
+	selectParams["_id"] = clientID
 
 	clients, err := db.GetClientsWithFilters(selectParams)
 	if err != nil {
@@ -127,17 +120,10 @@ func (db *dbClient) UpdateClient(clientID string, updates map[string]interface{}
 
 func (db *dbClient) DeleteClient(clientID string) error {
 	deleteParams := make(map[string]interface{})
-	c := models.Client{}
-	v := reflect.ValueOf(c)
 
-	columnName, err := db.GetColumnNameForStructField(v.Type().Field(0))
-	if err != nil {
-		return fmt.Errorf("DeleteClient: %v", err)
-	}
+	deleteParams["_id"] = clientID
 
-	deleteParams[columnName] = clientID
-
-	deleteQuery, err := db.GetDeleteQueryForStruct(c, deleteParams)
+	deleteQuery, err := db.GetDeleteQueryForStruct(models.Client{}, deleteParams)
 	if err != nil {
 		return fmt.Errorf("DeleteClient: %v", err)
 	}

@@ -14,6 +14,6 @@ type Task struct {
 	Date        time.Time `json:"date"`
 	IsActive    bool      `json:"is_active"`
 
-	Project *Project `json:"project_id"`
-	Tags    []*Tag   `json:"-"`
+	Project string   `json:"project_id"`
+	Tags    []string `json:"tags"`
 }
